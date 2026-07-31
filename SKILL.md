@@ -67,7 +67,7 @@ owner-tagged macros only when setting up new projects or when asked to migrate.
 
 When asked to set up the todonotes workflow in a new LaTeX project:
 
-1. Copy `mytodonotes.sty` **and** `claudenotes.sty` from this skill's directory (`~/.claude/skills/latex-todonotes/`) into the paper directory
+1. Copy `mytodonotes.sty` **and** `claudenotes.sty` from this skill's directory (wherever this SKILL.md lives) into the paper directory
 2. Load both in the preamble — all fixed Claude machinery lives in the package, nothing to paste inline:
    ```latex
    \usepackage{mytodonotes}   % todonotes config, \note, \response
@@ -91,6 +91,6 @@ When asked to set up the todonotes workflow in a new LaTeX project:
    this skill's local path: the never-delete-author-notes rule with the
    `\response{claude}` example, the owner-tagged Claude macros and what they
    render as, the three-line new-author pattern, the open-items enumeration
-   habit, and the sync protocol if the repo is Overleaf-synced. A local
-   skill path may be mentioned as provenance only, never as the place the
-   instructions live.
+   habit, and the sync protocol if the repo is Overleaf-synced. The skill's
+   repo (https://github.com/postylem/latex-todonotes) may be mentioned as
+   provenance, never as the place the instructions live.

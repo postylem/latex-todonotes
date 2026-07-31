@@ -1,0 +1,15 @@
+{
+  "name": "postylem-skills",
+  "description": "Jacob Hoover Vigly's Claude Code skills",
+  "owner": {
+    "name": "Jacob Hoover Vigly",
+    "email": "postylem@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "latex-todonotes",
+      "source": "./",
+      "description": "Edit LaTeX papers using todonotes for author-Claude collaboration: respond to author margin comments without deleting them, mark Claude's contributions with owner-tagged macros, enumerate open items after each task."
+    }
+  ]
+}

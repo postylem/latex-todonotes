@@ -1,0 +1,12 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "latex-todonotes",
+  "description": "Edit LaTeX papers using todonotes for author-Claude collaboration. Respond to author margin comments, mark Claude's contributions with owner-tagged macros, and enumerate open items after each task.",
+  "author": {
+    "name": "Jacob Hoover Vigly",
+    "email": "postylem@gmail.com"
+  },
+  "skills": [
+    "./"
+  ]
+}
