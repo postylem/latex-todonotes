@@ -42,8 +42,9 @@ owner from context (repo CLAUDE.md, git user name) or ask; do not guess.
   inline changes proposed but not applied
 - **Claude-authored replacement text**: `\claudechange[<owner>]{...}` —
   renders in Claude purple; the owner argument is provenance
-- **New block-level text**: wrap in `\begin{ClaudeSuggest}...\end{ClaudeSuggest}`
-  (renders with a changebar)
+- **New block-level text**: wrap in
+  `\begin{ClaudeSuggest}[<owner>]...\end{ClaudeSuggest}` (renders in Claude
+  purple with a changebar in the owner's accent color)
 
 All Claude notes share one Claude purple; the owner shows as an accent — the
 note's frame and leader line take a darkened version of the owner's own note
