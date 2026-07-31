@@ -44,7 +44,8 @@ owner from context (repo CLAUDE.md, git user name) or ask; do not guess.
   renders in Claude purple; the owner argument is provenance
 - **New block-level text**: wrap in
   `\begin{ClaudeSuggest}[<owner>]...\end{ClaudeSuggest}` (renders in Claude
-  purple with a changebar in the owner's accent color)
+  purple with a purple changebar, headed by a small `claude@<owner>` label
+  whose owner part takes the owner's accent color)
 
 All Claude notes share one Claude purple; the owner shows as an accent — the
 note's frame and leader line take a darkened version of the owner's own note

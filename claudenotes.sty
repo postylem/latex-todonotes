@@ -11,7 +11,8 @@
 %%   \claudechange[jac]{...}  Claude-authored replacement text (owner arg is
 %%                            provenance only; renders in Claude purple)
 %%   \begin{ClaudeSuggest}[jac]...\end{ClaudeSuggest}  block suggestion
-%%                            (changebar in owner accent, text Claude purple)
+%%                            (purple changebar; small "claude@jac" label
+%%                             with the @owner part in the owner's accent)
 %%
 %% All Claude notes share the Claude purple; the OWNER shows as an accent:
 %% the note's frame and leader line take a darkened notecolor-<owner>.
@@ -27,7 +28,7 @@
 %% Per-paper re-tinting: redefine ClaudeColor and ClaudeNoteBG after loading.
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{claudenotes}[2026/07/31 v1.2 owner-tagged Claude todonotes]
+\ProvidesPackage{claudenotes}[2026/07/31 v1.3 owner-tagged Claude todonotes]
 \RequirePackage{mytodonotes}
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
@@ -53,16 +54,21 @@
 \NewDocumentCommand{\claudeSuggest}{O{claude} +m}{%
   {\color{ClaudeColor}\textbf{\claude@who{#1}}: #2}}
 
-% Block suggestions: text in Claude purple, changebar in the owner's accent
-% (falls back to Claude purple when no owner / no notecolor, like \claude)
+% Block suggestions: purple changebar and text, headed by a small bold label
+% "claude@<owner>" with the @<owner> part in the owner's accent color
+% (default owner shows just "claude"; unknown owners fall back to purple)
+\newcommand{\claude@blocklabel}[1]{%
+  {\scriptsize\bfseries
+   \textcolor{ClaudeColor}{claude}%
+   \ifcsname claude@who@#1\endcsname\else\textcolor{claude-accent}{@#1}\fi}}
 \NewTColorBox{ClaudeSuggest}{O{claude}}{
   blanker,
   code={\claude@setaccent{#1}},
-  borderline west={3pt}{0pt}{claude-accent},
+  borderline west={3pt}{0pt}{ClaudeColor},
   left=8pt,
   before skip=10pt,
   after skip=10pt,
-  before upper={\color{ClaudeColor}},
+  before upper={\claude@blocklabel{#1}\par\nobreak\color{ClaudeColor}},
   after={\noindent}
 }
 
