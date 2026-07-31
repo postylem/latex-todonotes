@@ -1,0 +1,28 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TODONOTE CONFIGURATION
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{mytodonotes}[2026/07/30 v1.1 todonotes configuration]
+\RequirePackage[textsize=scriptsize]{todonotes} % [disable]
+\tikzset{
+  notestyleraw/.append style={
+    rounded corners=0pt,
+    inner sep=3pt,
+    line width=0.9pt,  % frame stays enabled; \note sets bordercolor = fill,
+                       % so plain notes look flat and only notes that override
+                       % bordercolor (e.g. \claude's owner accent) show a frame
+  }
+}
+\makeatletter
+\newcommand*\iftodonotes{\if@todonotes@disabled\expandafter\@secondoftwo\else\expandafter\@firstoftwo\fi}  % defines \iftodonotes{<true>}{<false>}, thanks to \makeatother
+\newcommand{\noindentaftertodo}{\iftodonotes{\noindent}{}}
+\newcommand{\note}[4][]{\todo[color=#3,bordercolor=#3,caption={},#1]{\textbf{#2}: #4}}
+\newcommand{\response}[1]{\vspace{3pt}\hrule\vspace{3pt}\textbf{#1:}}   % insert \response{myname} within someone else's todonote
+\newcommand{\notewho}[3][]{\note[#1]{#2}{blue!40}{#3}}     % for other commenters: specify author name in first required arg
+\newcommand{\Notewho}[3][]{\notewho[inline,#1]{#2}{#3}\noindentaftertodo}
+
+% Example macros for an author todonote: bare lowercase name = margin note,
+% capitalized = inline (check for clashes with existing commands before
+% naming --- e.g. an author `max` or `sec` needs a variant)
+% \newcommand{\jac}[2][]{\note[#1]{jac}{red!40}{#2}}
+% \newcommand{\Jac}[2][]{\jac[inline,#1]{#2}}
+
