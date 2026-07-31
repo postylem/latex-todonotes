@@ -28,7 +28,7 @@
 %% Per-paper re-tinting: redefine ClaudeColor and ClaudeNoteBG after loading.
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{claudenotes}[2026/07/31 v1.3 owner-tagged Claude todonotes]
+\ProvidesPackage{claudenotes}[2026/07/31 v1.4 owner-tagged Claude todonotes]
 \RequirePackage{mytodonotes}
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
@@ -63,6 +63,7 @@
    \ifcsname claude@who@#1\endcsname\else\textcolor{claude-accent}{@#1}\fi}}
 \NewTColorBox{ClaudeSuggest}{O{claude}}{
   blanker,
+  breakable,
   code={\claude@setaccent{#1}},
   borderline west={3pt}{0pt}{ClaudeColor},
   left=8pt,
