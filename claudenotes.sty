@@ -33,7 +33,7 @@
 %% Per-paper re-tinting: redefine ClaudeColor and ClaudeNoteBG after loading.
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{claudenotes}[2026/08/14 v1.9 owner-tagged Claude todonotes]
+\ProvidesPackage{claudenotes}[2026/08/14 v1.10 owner-tagged Claude todonotes]
 \RequirePackage{mytodonotes}
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
@@ -99,7 +99,15 @@
 
 % Block suggestions: purple changebar and text, headed by a small bold
 % "claude@<owner>" label (default owner shows just "claude")
-\newlength{\claude@labelgap}\setlength{\claude@labelgap}{9pt}  % room above the first line for the label
+% The label is a tab growing out of the changebar: its background starts exactly
+% at the bar's inner edge, so the two read as one piece.  \claude@barwd is half
+% the `borderline west` width, since that line is centred on the frame edge and
+% therefore reaches \claude@barwd inward; the chip's own left bleed is then
+% cancelled so the painted edges meet flush.
+\newlength{\claude@barwd}\setlength{\claude@barwd}{1.5pt}
+\newlength{\claude@labelx}
+\newlength{\claude@labelgap}\setlength{\claude@labelgap}{15pt}  % room above the first line for the label tab
+\newlength{\claude@labeldrop}\setlength{\claude@labeldrop}{2pt} % chip top below the block's top edge
 \newcommand{\claude@blocklabel}[1]{%
   {\scriptsize\bfseries\claude@setaccent{#1}\claude@who{#1}}}
 \NewTColorBox{ClaudeSuggest}{O{claude}}{
@@ -115,7 +123,9 @@
   % line.  `unbroken and first` keeps it off continuation pages.
   top=\claude@labelgap,
   overlay unbroken and first={%
-    \node[anchor=north west, inner sep=0pt, xshift=8pt, yshift=-1pt]
+    \setlength{\claude@labelx}{\dimexpr\claude@barwd+\claude@chippad\relax}%
+    \node[anchor=north west, inner sep=0pt,
+          xshift=\claude@labelx, yshift=-\claude@labeldrop]
       at (frame.north west) {\claude@blocklabel{#1}};},
   % colupper, not \color in before upper: the latter is applied once and is lost
   % where a breakable box continues onto the next page.
