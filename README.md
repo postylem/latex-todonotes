@@ -1,7 +1,8 @@
 # latex-todonotes
 
 A [Claude Code](https://code.claude.com) skill for author–Claude collaboration
-in LaTeX papers, built on [todonotes](https://ctan.org/pkg/todonotes).
+in LaTeX papers, built on [todonotes](https://ctan.org/pkg/todonotes), and based on 
+an initial version by [Tim Vieira](https://timvieira.github.io/).
 
 It teaches Claude a margin-comment workflow:
 
