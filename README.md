@@ -18,13 +18,13 @@ It teaches Claude a margin-comment workflow:
 - **Enumerate open items** (author notes, Claude notes, suggestions, TODOs)
   after each editing task.
 
-Every Claude label renders as `claude@owner`, set in Claude purple throughout,
-with the two halves distinguished by background: Claude's own tint behind
-`claude`, and that author's own note color behind `@owner`. The color is looked
-up from the `notecolor-<owner>` colorlet that sits beside each author's note
-macro, so adding an author needs no Claude-specific setup. Author colors are
-used as backgrounds rather than text colors, since they are picked to sit behind
-text and are usually too pale to read against one.
+Every Claude label renders as `claude@owner`: `claude` in Claude purple on
+Claude's own tint, then `@owner` in the ordinary text color on that author's own
+note color — so the owner half looks just like their name does in their own
+notes. The color is looked up from the `notecolor-<owner>` colorlet that sits
+beside each author's note macro, so adding an author needs no Claude-specific
+setup. Author colors are used as backgrounds rather than text colors, since they
+are picked to sit behind text and are usually too pale to read against one.
 
 The LaTeX side lives in two packages shipped with the skill:
 

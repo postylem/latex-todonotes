@@ -14,12 +14,13 @@
 %%   \begin{ClaudeSuggest}[jac]...\end{ClaudeSuggest}  block suggestion
 %%                            (purple changebar; small "claude@jac" label)
 %%
-%% Every label reads "claude@<owner>" in Claude purple throughout; the OWNER
-%% shows as a BACKGROUND behind the "@<owner>" half -- notecolor-<owner> itself,
-%% unmodified -- while "claude" sits on Claude's own tint.  Owner colors are
-%% picked to sit behind text, so they are used as backgrounds and never as text
-%% colors.  The note's frame and leader line do take a darkened
-%% notecolor-<owner>, where a saturated color is what is wanted.
+%% Every label reads "claude@<owner>": "claude" in Claude purple on Claude's
+%% own tint, then "@<owner>" in the default text color on notecolor-<owner>
+%% itself, unmodified -- so the owner half looks just like that author's name
+%% does in their own notes.  Owner colors are picked to sit behind text, so
+%% they are used as backgrounds and never as text colors.  The note's frame and
+%% leader line do take a darkened notecolor-<owner>, where a saturated color is
+%% what is wanted.
 %% Authors set up nothing Claude-specific: \claude[<name>] finds the color
 %% `notecolor-<name>` that the author defined next to their own note macros
 %% in the document preamble, i.e. the three-line pattern
@@ -32,7 +33,7 @@
 %% Per-paper re-tinting: redefine ClaudeColor and ClaudeNoteBG after loading.
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{claudenotes}[2026/08/14 v1.8 owner-tagged Claude todonotes]
+\ProvidesPackage{claudenotes}[2026/08/14 v1.9 owner-tagged Claude todonotes]
 \RequirePackage{mytodonotes}
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
@@ -45,12 +46,13 @@
   \@ifundefinedcolor{notecolor-#1}%
     {\colorlet{claude-accent}{ClaudeColor}}%
     {\colorlet{claude-accent}{notecolor-#1!75!black}}}
-% The label, everywhere it appears: "claude@owner" set entirely in Claude
-% purple, its two halves distinguished by BACKGROUND -- Claude's own tint
-% behind "claude", the owner's note color behind "@owner".  Owner colors are
-% chosen to sit behind text, so using one as a text color (as an earlier
-% version did) gives poor contrast, worst of all for a reply inside a note
-% belonging to that same owner, where the accent all but vanished.
+% The label, everywhere it appears: "claude" in Claude purple on Claude's own
+% tint, then "@owner" in the DEFAULT text color on the owner's note color --
+% so the owner half matches how that author's name already looks in their own
+% \<author> notes and \response{<author>}.  Owner colors are chosen to sit
+% behind text, so using one as a text color (as an earlier version did) gives
+% poor contrast, worst of all for a reply inside a note belonging to that same
+% owner, where the tinted text all but vanished.
 %
 % The backgrounds are painted as rules inside a zero-width, zero-height
 % overlay, so the label's metrics are exactly those of the plain text: no
@@ -78,7 +80,7 @@
       \claude@chiprule{\dimexpr\claude@wordwd+\claude@chippad\relax}}%
     \textcolor{claude-ownerbg}{%
       \claude@chiprule{\dimexpr\claude@ownerwd+\claude@chippad\relax}}}}%
-  \textcolor{ClaudeColor}{claude\claude@owner}%
+  \textcolor{ClaudeColor}{claude}{\normalcolor\claude@owner}%
   \endgroup}
 \NewDocumentCommand{\claude}{O{claude} O{} +m}{%
   \claude@setaccent{#1}%

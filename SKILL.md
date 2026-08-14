@@ -50,11 +50,12 @@ owner from context (repo CLAUDE.md, git user name) or ask; do not guess.
   `\begin{ClaudeSuggest}[<owner>]...\end{ClaudeSuggest}` (renders in Claude
   purple with a purple changebar, headed by a small `claude@<owner>` label)
 
-Every one of these labels is set the same way: the whole string `claude@<owner>`
-in Claude purple, its two halves distinguished by *background* — Claude's own
-tint behind `claude`, and the owner's `notecolor-<owner>` itself, unmodified,
-behind `@<owner>`. That colorlet is looked up automatically from the author's
-existing macro setup, so no Claude-specific setup is needed.
+Every one of these labels is set the same way: `claude` in Claude purple on
+Claude's own tint, then `@<owner>` in the ordinary text color on
+`notecolor-<owner>` itself, unmodified. The owner half therefore looks exactly
+like that author's name already does in their own `\<author>{...}` note or
+`\response{<author>}`. The colorlet is looked up automatically from the
+author's existing macro setup, so no Claude-specific setup is needed.
 
 Author note colors are chosen to sit *behind* text, so they are used as
 backgrounds and never as text colors. An earlier version of this package tinted
