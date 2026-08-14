@@ -33,7 +33,7 @@
 %% Per-paper re-tinting: redefine ClaudeColor and ClaudeNoteBG after loading.
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{claudenotes}[2026/08/14 v1.12 owner-tagged Claude todonotes]
+\ProvidesPackage{claudenotes}[2026/08/14 v1.13 owner-tagged Claude todonotes]
 \RequirePackage{mytodonotes}
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
@@ -102,9 +102,12 @@
 % A flag at the top of a flagpole: the label's chip meets the changebar edge to
 % edge, and their top edges are level -- no overlap, no overshoot either way.
 %
-% Horizontally: `borderline west` is centred on the path it is given, so the bar
-% is offset outward by half its width, reaching exactly 0pt inward; the tab then
-% starts at 0pt, its own left bleed landing where the bar stops.
+% Horizontally: the pole is drawn as an explicit rectangle spanning
+% [-\claude@barwd, 0] from the frame's west edge, rather than with `borderline
+% west`, whose offset is measured from the centre of the line and so makes
+% "where does the paint actually stop" a matter of sign convention.  Its right
+% edge is therefore exactly 0pt, and the flag starts at 0pt too: the node is
+% shifted right by \claude@chippad so that the chip's own left bleed lands there.
 %
 % Vertically: the label carries a \strut, so its node's top is the baseline plus
 % \ht\strutbox -- the very quantity \claude@chiprule measures the chip from.
@@ -117,15 +120,15 @@
 \newlength{\claude@labelgap}\setlength{\claude@labelgap}{15pt}  % room above the first line for the label tab
 \newcommand{\claude@blocklabel}[1]{%
   {\scriptsize\bfseries\claude@setaccent{#1}\strut\claude@who{#1}}}
+% The pole, drawn on every part of a breakable block
+\newcommand{\claude@pole}{%
+  \fill[ClaudeColor]
+    ([xshift=-\claude@barwd]frame.north west) rectangle (frame.south west);}
 \NewTColorBox{ClaudeSuggest}{O{claude}}{
   blanker,
   breakable,
   code={\claude@setaccent{#1}},
-  % sharp corners: with any arc, the borderline path rounds the top-left corner
-  % and leaves a short horizontal tick above the flag -- the pole appears to
-  % overshoot even when the two tops are level.
   sharp corners,
-  borderline west={\claude@barwd}{-0.5\claude@barwd}{ClaudeColor},
   left=8pt,
   before skip=10pt,
   after skip=10pt,
@@ -134,10 +137,12 @@
   % line.  `unbroken and first` keeps it off continuation pages.
   top=\claude@labelgap,
   overlay unbroken and first={%
+    \claude@pole
     \setlength{\claude@labelx}{\claude@chippad}%
     \node[anchor=north west, inner sep=0pt, outer sep=0pt,
           xshift=\claude@labelx, yshift=-\claude@chiprise]
       at (frame.north west) {\claude@blocklabel{#1}};},
+  overlay middle and last={\claude@pole},
   % colupper, not \color in before upper: the latter is applied once and is lost
   % where a breakable box continues onto the next page.
   colupper=ClaudeColor,
