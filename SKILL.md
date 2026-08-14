@@ -50,12 +50,26 @@ owner from context (repo CLAUDE.md, git user name) or ask; do not guess.
   `\begin{ClaudeSuggest}[<owner>]...\end{ClaudeSuggest}` (renders in Claude
   purple with a purple changebar, headed by a small `claude@<owner>` label)
 
-Every one of these labels is set the same way: `claude` in Claude purple and
-`@<owner>` in the owner's accent — a darkened version of that author's own note
-color (`notecolor-<owner>`), looked up automatically from their existing macro
-setup. `\claude`'s note frame and leader line take the accent too. Omitting
-`[<owner>]` (or naming an owner without a `notecolor`) falls back to plain
-purple with no `@` suffix; prefer always tagging the owner so multi-author
+Every one of these labels is set the same way: the whole string `claude@<owner>`
+in Claude purple, its two halves distinguished by *background* — Claude's own
+tint behind `claude`, and the owner's `notecolor-<owner>` itself, unmodified,
+behind `@<owner>`. That colorlet is looked up automatically from the author's
+existing macro setup, so no Claude-specific setup is needed.
+
+Author note colors are chosen to sit *behind* text, so they are used as
+backgrounds and never as text colors. An earlier version of this package tinted
+the `@<owner>` text with a darkened author color instead, which read poorly in
+general and became nearly invisible in the commonest case of all: a
+`\claudeResponse[<owner>]` inside a note belonging to that same owner. The one
+place a darkened author color is still used is `\claude`'s note frame and
+leader line, where a saturated color is what is wanted.
+
+The backgrounds are painted as rules in a zero-width, zero-height overlay, so a
+label's metrics are exactly those of the plain text — adding one never shifts
+anything horizontally or vertically.
+
+Omitting `[<owner>]` (or naming an owner without a `notecolor`) falls back to
+plain purple with no `@` suffix; prefer always tagging the owner so multi-author
 projects can tell whose session made an edit.
 
 **Legacy projects**: papers set up with the older convention use
