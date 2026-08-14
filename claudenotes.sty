@@ -33,7 +33,7 @@
 %% Per-paper re-tinting: redefine ClaudeColor and ClaudeNoteBG after loading.
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{claudenotes}[2026/08/14 v1.10 owner-tagged Claude todonotes]
+\ProvidesPackage{claudenotes}[2026/08/14 v1.11 owner-tagged Claude todonotes]
 \RequirePackage{mytodonotes}
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
@@ -99,12 +99,12 @@
 
 % Block suggestions: purple changebar and text, headed by a small bold
 % "claude@<owner>" label (default owner shows just "claude")
-% The label is a tab growing out of the changebar: its background starts exactly
-% at the bar's inner edge, so the two read as one piece.  \claude@barwd is half
-% the `borderline west` width, since that line is centred on the frame edge and
-% therefore reaches \claude@barwd inward; the chip's own left bleed is then
-% cancelled so the painted edges meet flush.
-\newlength{\claude@barwd}\setlength{\claude@barwd}{1.5pt}
+% The label is a tab growing out of the changebar, the two meeting edge to edge
+% at the frame's west boundary.  `borderline west` is centred on the path it is
+% given, so the bar is offset outward by half its width: it then reaches exactly
+% 0pt inward and never overlaps the tab.  The tab in turn starts at 0pt, its own
+% left bleed placing its painted edge right where the bar stops.
+\newlength{\claude@barwd}\setlength{\claude@barwd}{3pt}   % changebar width
 \newlength{\claude@labelx}
 \newlength{\claude@labelgap}\setlength{\claude@labelgap}{15pt}  % room above the first line for the label tab
 \newlength{\claude@labeldrop}\setlength{\claude@labeldrop}{2pt} % chip top below the block's top edge
@@ -114,7 +114,7 @@
   blanker,
   breakable,
   code={\claude@setaccent{#1}},
-  borderline west={3pt}{0pt}{ClaudeColor},
+  borderline west={\claude@barwd}{-0.5\claude@barwd}{ClaudeColor},
   left=8pt,
   before skip=10pt,
   after skip=10pt,
@@ -123,7 +123,7 @@
   % line.  `unbroken and first` keeps it off continuation pages.
   top=\claude@labelgap,
   overlay unbroken and first={%
-    \setlength{\claude@labelx}{\dimexpr\claude@barwd+\claude@chippad\relax}%
+    \setlength{\claude@labelx}{\claude@chippad}%
     \node[anchor=north west, inner sep=0pt,
           xshift=\claude@labelx, yshift=-\claude@labeldrop]
       at (frame.north west) {\claude@blocklabel{#1}};},
