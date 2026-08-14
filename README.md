@@ -6,14 +6,21 @@ in LaTeX papers, built on [todonotes](https://ctan.org/pkg/todonotes).
 It teaches Claude a margin-comment workflow:
 
 - **Respond to author comments in place** — never delete an author's
-  `\jac{...}`-style todonote; append a `\response{claude}` inside it instead.
+  `\jac{...}`-style todonote; append a `\claudeResponse[owner]` inside it
+  instead.
 - **Mark Claude's contributions** with owner-tagged macros
-  (`\claude[owner]{...}`, `\claudeSuggest[owner]{...}`, `\claudechange`,
+  (`\claude[owner]{...}`, `\Claude[owner]{...}`, `\claudeResponse[owner]`,
+  `\claudeSuggest[owner]{...}`, `\claudechange[owner]{...}`, and the
   `ClaudeSuggest` block environment), all in a shared Claude purple with a
   per-owner accent color, so multi-author projects can tell whose Claude
   session made an edit.
 - **Enumerate open items** (author notes, Claude notes, suggestions, TODOs)
   after each editing task.
+
+Every Claude label renders as `claude@owner` — `claude` in Claude purple,
+`@owner` in a darkened form of that author's own note color. The accent is
+looked up from the `notecolor-<owner>` colorlet that sits beside each author's
+note macro, so adding an author needs no Claude-specific setup.
 
 The LaTeX side lives in two packages shipped with the skill:
 
@@ -22,8 +29,12 @@ The LaTeX side lives in two packages shipped with the skill:
 - `claudenotes.sty` — the owner-tagged Claude macros (loads on top of
   `mytodonotes.sty`)
 
+Copy both into the paper directory and commit them, so collaborators who clone
+the repo can build it.
+
 See [SKILL.md](SKILL.md) for the full workflow, including the three-line
-per-author macro pattern and how to set up a new paper.
+per-author macro pattern, how to set up a new paper, and how to migrate one
+that predates owner tagging.
 
 ## Install
 

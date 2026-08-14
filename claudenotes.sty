@@ -28,7 +28,7 @@
 %% Per-paper re-tinting: redefine ClaudeColor and ClaudeNoteBG after loading.
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{claudenotes}[2026/08/14 v1.6 owner-tagged Claude todonotes]
+\ProvidesPackage{claudenotes}[2026/08/14 v1.7 owner-tagged Claude todonotes]
 \RequirePackage{mytodonotes}
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
@@ -56,6 +56,10 @@
   \textcolor{ClaudeColor}{#2}}
 \NewDocumentCommand{\claudeSuggest}{O{claude} +m}{%
   {\claude@setaccent{#1}\color{ClaudeColor}\textbf{\claude@who{#1}}: #2}}
+% Reply inside another author's note, labeled like the note headers above.
+% Routed through \response so it inherits that macro's rule and spacing.
+\NewDocumentCommand{\claudeResponse}{O{claude}}{%
+  \response{\claude@setaccent{#1}\claude@who{#1}}}
 
 % Block suggestions: purple changebar and text, headed by a small bold label
 % "claude@<owner>" with the @<owner> part in the owner's accent color

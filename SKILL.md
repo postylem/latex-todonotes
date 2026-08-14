@@ -1,6 +1,6 @@
 ---
 name: latex-todonotes
-description: Edit LaTeX papers using todonotes for author-Claude collaboration. Respond to author margin comments, mark Claude's contributions with owner-tagged \claude/\Claude/\claudeSuggest macros, and enumerate open items after each task.
+description: Edit LaTeX papers using todonotes for author-Claude collaboration. Respond to author margin comments, mark Claude's contributions with owner-tagged \claude/\Claude/\claudeSuggest/\claudeResponse macros, and enumerate open items after each task.
 ---
 
 # LaTeX Todonotes Editing Workflow
@@ -12,7 +12,7 @@ description: Edit LaTeX papers using todonotes for author-Claude collaboration. 
 When addressing a comment:
 1. **Make the requested edit** to the surrounding text/code
 2. **Keep the original comment** exactly as written
-3. **Add `\response{claude}`** inside the note explaining what you did
+3. **Add `\claudeResponse[<owner>]`** inside the note explaining what you did
 
 Example — if author writes:
 ```latex
@@ -22,13 +22,15 @@ Note 1 = 2.\jac{Wrong! Fix RHS of equation.}
 Correct response:
 ```latex
 Note 1 = 1.\jac{Wrong! Fix RHS of equation.
-\response{claude} Fixed. Now the equation is correct.}
+\claudeResponse[jac] Fixed. Now the equation is correct.}
 ```
 
 **WRONG** (deleting the comment):
 ```latex
 Note 1 = 1.
 ```
+
+Append rather than replace: a note may already carry responses from other people and from other Claude sessions, and each is part of the record.
 
 ## Marking Claude's contributions (owner-tagged, default style)
 
@@ -38,30 +40,48 @@ owner from context (repo CLAUDE.md, git user name) or ask; do not guess.
 
 - **Margin notes**: `\claude[<owner>]{note text}` — labeled `claude@<owner>`
 - **Inline notes**: `\Claude[<owner>]{note text}`
+- **Replies in another author's note**: `\claudeResponse[<owner>]` — the
+  `\response` rule and spacing, headed `claude@<owner>`
 - **Inline suggestions**: `\claudeSuggest[<owner>]{suggested text}` for small
   inline changes proposed but not applied
 - **Claude-authored replacement text**: `\claudechange[<owner>]{...}` —
   renders in Claude purple; the owner argument is provenance
 - **New block-level text**: wrap in
   `\begin{ClaudeSuggest}[<owner>]...\end{ClaudeSuggest}` (renders in Claude
-  purple with a purple changebar, headed by a small `claude@<owner>` label
-  whose owner part takes the owner's accent color)
+  purple with a purple changebar, headed by a small `claude@<owner>` label)
 
-All Claude notes share one Claude purple; the owner shows as an accent — the
-note's frame and leader line take a darkened version of the owner's own note
-color (`notecolor-<owner>`), looked up automatically from the author's
-existing macro setup. Omitting `[<owner>]` (or naming an owner without a
-`notecolor`) falls back to plain purple; prefer always tagging the owner so
-multi-author projects can tell whose session made an edit.
+Every one of these labels is set the same way: `claude` in Claude purple and
+`@<owner>` in the owner's accent — a darkened version of that author's own note
+color (`notecolor-<owner>`), looked up automatically from their existing macro
+setup. `\claude`'s note frame and leader line take the accent too. Omitting
+`[<owner>]` (or naming an owner without a `notecolor`) falls back to plain
+purple with no `@` suffix; prefer always tagging the owner so multi-author
+projects can tell whose session made an edit.
 
 **Legacy projects**: papers set up with the older convention use
-`\noteClaude{...}`/`\NoteClaude{...}` and untagged `\claudeSuggest{...}`.
-Follow whatever convention the project already uses; introduce the
-owner-tagged macros only when setting up new projects or when asked to migrate.
+`\noteClaude{...}`/`\NoteClaude{...}`, untagged `\claudeSuggest{...}`, and
+`\response{claude}`. Follow whatever convention the project already uses;
+introduce the owner-tagged macros only when setting up new projects or when
+asked to migrate.
+
+## Mechanical notes
+
+- **`\claude{}` cannot appear inside a `ClaudeSuggest` box.** It is a
+  `\marginpar`, and tcolorbox swallows it — the failure surfaces as
+  `! LaTeX Error: Float(s) lost`, not as a missing note. Put the margin note
+  immediately *before* `\begin{ClaudeSuggest}`.
+- **Prefer suggestion blocks and margin notes to rewriting prose in place.**
+  Editing an author's sentences directly is hard for them to review; a
+  `ClaudeSuggest` block leaves the original intact and is trivial to accept or
+  drop. When a block is meant to *replace* nearby text rather than add to it,
+  say so in its first sentence.
+- **Build before reporting.** These macros are easy to get subtly wrong
+  (colors that vanish across a page break, notes that swallow floats), and a
+  broken preamble breaks the collaborator's build too.
 
 ## After completing each editing task
 
-1. **Enumerate open items**: Scan the paper for author notes (`\jac{}`/`\Jac{}`-style lowercase-name macros, or legacy `\noteAuthor{}`/`\NoteAuthor{}`), Claude notes (`\claude[...]{}`, `\Claude[...]{}`, legacy `\noteClaude{}`), `\claudeSuggest`/`ClaudeSuggest` suggestions, and `TODO` markers
+1. **Enumerate open items**: Scan the paper for author notes (`\jac{}`/`\Jac{}`-style lowercase-name macros, or legacy `\noteAuthor{}`/`\NoteAuthor{}`), Claude notes (`\claude[...]{}`, `\Claude[...]{}`, legacy `\noteClaude{}`), `\claudeSuggest`/`ClaudeSuggest` suggestions awaiting a decision, and `TODO` markers
 2. **Present the list**: Show numbered list of open items with brief descriptions and line references
 3. **Suggest next task**: Recommend which item to tackle next
 
@@ -69,11 +89,11 @@ owner-tagged macros only when setting up new projects or when asked to migrate.
 
 When asked to set up the todonotes workflow in a new LaTeX project:
 
-1. Copy `mytodonotes.sty` **and** `claudenotes.sty` from this skill's directory (wherever this SKILL.md lives) into the paper directory
-2. Load both in the preamble — all fixed Claude machinery lives in the package, nothing to paste inline:
+1. Copy `mytodonotes.sty` **and** `claudenotes.sty` from this skill's directory (wherever this SKILL.md lives) into the paper directory, and commit them — collaborators who clone the repo need them to build
+2. Load both in the preamble — all fixed Claude machinery lives in the packages, nothing to paste inline:
    ```latex
-   \usepackage{mytodonotes}   % todonotes config, \note, \response
-   \usepackage{claudenotes}   % \claude[owner], \Claude, \claudeSuggest, \claudechange, ClaudeSuggest env
+   \usepackage{mytodonotes}   % todonotes config, \note, \response, \notewho
+   \usepackage{claudenotes}   % \claude[owner], \Claude, \claudeResponse, \claudeSuggest, \claudechange, ClaudeSuggest env
    ```
 3. Define per-author note macros in the document preamble (the paper-by-paper part), in the bare-name style, **three lines per author**:
    ```latex
@@ -91,8 +111,25 @@ When asked to set up the todonotes workflow in a new LaTeX project:
    have this skill on their machine — their Claude sessions see only the
    repo — so the CLAUDE.md must spell the rules out rather than point to
    this skill's local path: the never-delete-author-notes rule with the
-   `\response{claude}` example, the owner-tagged Claude macros and what they
-   render as, the three-line new-author pattern, the open-items enumeration
-   habit, and the sync protocol if the repo is Overleaf-synced. The skill's
-   repo (https://github.com/postylem/latex-todonotes) may be mentioned as
+   `\claudeResponse[<owner>]` example, the owner-tagged Claude macros and what
+   they render as, the three-line new-author pattern, the mechanical notes
+   above, the open-items enumeration habit, and the sync protocol if the repo
+   is Overleaf-synced. The skill's repo
+   (https://github.com/postylem/latex-todonotes) may be mentioned as
    provenance, never as the place the instructions live.
+
+## Migrating a paper that predates owner tagging
+
+Papers set up before owner tagging have the todonote machinery pasted inline in
+the preamble and an untagged `\claude`. To migrate:
+
+1. Copy in the two `.sty` files and replace the inline block with the two
+   `\usepackage` lines plus the three-line-per-author pattern, converting each
+   author's literal color into a `notecolor-<name>` colorlet
+2. Tag the existing Claude material by owner. Ownership is usually recoverable
+   from history rather than by eye — diff against the commit or tag before a
+   given session's work and attribute each `ClaudeSuggest` block and response
+   accordingly, rather than guessing from the prose
+3. Rebuild and compare the rendering: plain author notes should look unchanged
+   (`mytodonotes.sty` sets `bordercolor = fill`, so only `\claude` notes gain a
+   visible accent frame)
