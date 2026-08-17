@@ -15,17 +15,17 @@
 
 % Per-author note macros: three lines each.  The notecolor-<name> colorlet is
 % load-bearing --- \claude[<name>] and friends derive the owner styling from it.
-\colorlet{notecolor-jac}{green!20}
-\newcommand{\jac}[2][]{\note[#1]{jac}{notecolor-jac}{#2}}
-\newcommand{\Jac}[2][]{\jac[inline,#1]{#2}}
+\colorlet{notecolor-alice}{green!20}
+\newcommand{\alice}[2][]{\note[#1]{alice}{notecolor-alice}{#2}}
+\newcommand{\Alice}[2][]{\alice[inline,#1]{#2}}
 
-\colorlet{notecolor-timv}{magenta!20}
-\newcommand{\timv}[2][]{\note[#1]{timv}{notecolor-timv}{#2}}
-\newcommand{\Timv}[2][]{\timv[inline,#1]{#2}}
+\colorlet{notecolor-bob}{magenta!20}
+\newcommand{\bob}[2][]{\note[#1]{bob}{notecolor-bob}{#2}}
+\newcommand{\Bob}[2][]{\bob[inline,#1]{#2}}
 
-\colorlet{notecolor-ryan}{violet!20}
-\newcommand{\ryan}[2][]{\note[#1]{ryan}{notecolor-ryan}{#2}}
-\newcommand{\Ryan}[2][]{\ryan[inline,#1]{#2}}
+\colorlet{notecolor-carol}{violet!20}
+\newcommand{\carol}[2][]{\note[#1]{carol}{notecolor-carol}{#2}}
+\newcommand{\Carol}[2][]{\carol[inline,#1]{#2}}
 
 \title{claudenotes: the whole menagerie\ifdefined\exampleparskip\\(parskip variant)\fi}
 \author{}
@@ -37,61 +37,65 @@
 \section{Author notes}
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-incididunt ut labore et dolore magna aliqua.\jac{A margin note from jac.
+incididunt ut labore et dolore magna aliqua.\alice{Lorem ipsum dolor sit amet,
+consectetur adipiscing elit, sed do eiusmod tempor incididunt.
 
-A second paragraph in the same note, to show that paragraphs inside notes
-separate the way the document's paragraphs do.}  Ut enim ad minim veniam, quis
-nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+aliquip ex ea commodo consequat.}  Ut enim ad minim veniam, quis nostrud
+exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 
-\Timv{An inline note from timv, spanning more than one paragraph.  Lorem ipsum
-dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
-ut labore et dolore magna aliqua.
+\Bob{Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+tempor incididunt ut labore et dolore magna aliqua.
 
-The second paragraph of the inline note.  Duis aute irure dolor in
-reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.}
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore
+eu fugiat nulla pariatur.}
 Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
-dolore.\notewho{sam}{A comment from someone without their own macros, via
-\texttt{\string\notewho}.}
+dolore.\notewho{dave}{Excepteur sint occaecat cupidatat non proident, sunt in
+culpa qui officia deserunt.}
 
 \section{Threads}
 
 Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia
-deserunt mollit anim id est laborum.\jac{Is this equation right?
-\response{timv} I think so, yes.
-\claudeResponse[jac] Verified numerically; it holds for all tested inputs.}
+deserunt mollit anim id est laborum.\alice{Lorem ipsum dolor sit amet,
+consectetur adipiscing elit?
+\response{bob} Sed do eiusmod tempor incididunt ut labore.
+\claudeResponse[alice] Ut enim ad minim veniam, quis nostrud exercitation
+ullamco laboris.}
 Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium
 doloremque laudantium.
 
 \section{Claude notes}
 
 Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut
-fugit.\claude[jac]{A margin note from jac's Claude session.
+fugit.\claude[alice]{Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+sed do eiusmod tempor incididunt ut labore.
 
-Its second paragraph, again following the document's paragraph style.}  Neque
-porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur,
-adipisci velit.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+aliquip.}  Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet,
+consectetur, adipisci velit.
 
-\Claude[timv]{An inline note from timv's Claude session.}
+\Claude[bob]{Lorem ipsum dolor sit amet, consectetur adipiscing elit.}
 Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit
-laboriosam; here is an inline suggestion: \claudeSuggest[ryan]{nisi ut aliquid
+laboriosam; here is an inline suggestion: \claudeSuggest[carol]{nisi ut aliquid
 ex ea commodi consequatur}, and here is
-\claudechange[jac]{Claude-authored replacement text in place}.
+\claudechange[alice]{sed quia non numquam eius modi tempora incidunt}.
 
 \section{Block suggestions}
 
-\claude[timv]{A margin note placed just before the block --- margin notes
-cannot live inside a \texttt{ClaudeSuggest} box.}
-\begin{ClaudeSuggest}[jac]
-\paragraph{A suggested passage.}
+\claude[bob]{Lorem ipsum dolor sit amet, consectetur adipiscing elit ---
+margin notes cannot live inside a \texttt{ClaudeSuggest} box, so this one
+sits just before it.}
+\begin{ClaudeSuggest}[alice]
+\paragraph{Lorem ipsum dolor sit amet.}
 Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam
 nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas
-nulla pariatur.\footnote{A footnote raised from inside the block; its text
-keeps Claude's color down at the page bottom.}
+nulla pariatur.\footnote{Sed ut perspiciatis unde omnis iste natus error sit
+voluptatem accusantium doloremque laudantium.}
 
 At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis
 praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias
-excepturi sint occaecati cupiditate non provident.  The second paragraph
-separates from the first the way the document's paragraphs do.
+excepturi sint occaecati cupiditate non provident, similique sunt in culpa
+qui officia deserunt mollitia animi.
 
 Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus
 saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae.
@@ -102,8 +106,9 @@ voluptatibus maiores alias consequatur aut perferendis doloribus asperiores
 repellat.
 
 \begin{ClaudeSuggest}
-An untagged block, for sessions whose owner is unknown: plain
-\texttt{claude} label, no \texttt{@owner}.
+Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit
+quo minus id quod maxime placeat facere possimus (an untagged block: plain
+\texttt{claude} label, no \texttt{@owner}).
 \end{ClaudeSuggest}
 
 \end{document}
