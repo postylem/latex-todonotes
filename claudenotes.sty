@@ -33,7 +33,7 @@
 %% Per-paper re-tinting: redefine ClaudeColor and ClaudeNoteBG after loading.
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{claudenotes}[2026/08/14 v1.13 owner-tagged Claude todonotes]
+\ProvidesPackage{claudenotes}[2026/08/14 v1.14 owner-tagged Claude todonotes]
 \RequirePackage{mytodonotes}
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
@@ -124,6 +124,15 @@
 \newcommand{\claude@pole}{%
   \fill[ClaudeColor]
     ([xshift=-\claude@barwd]frame.north west) rectangle (frame.south west);}
+% Footnotes raised inside a suggestion keep Claude's color: their text is
+% typeset at the page bottom, outside the box and its colupper, so wrap the
+% body in Claude purple as it is collected.  \let/\def keep the redefinition
+% local to the box group.
+\newcommand{\claude@colorfootnotes}{%
+  \let\claude@fn\footnote
+  \def\footnote{\@ifnextchar[\claude@fnopt\claude@fnplain}}
+\def\claude@fnopt[#1]#2{\claude@fn[#1]{\textcolor{ClaudeColor}{#2}}}
+\def\claude@fnplain#1{\claude@fn{\textcolor{ClaudeColor}{#1}}}
 \NewTColorBox{ClaudeSuggest}{O{claude}}{
   blanker,
   breakable,
@@ -146,7 +155,10 @@
   % colupper, not \color in before upper: the latter is applied once and is lost
   % where a breakable box continues onto the next page.
   colupper=ClaudeColor,
-  before upper={\nobreak\ignorespaces},
+  % \noteparstyle (from mytodonotes): paragraphs inside the block separate the
+  % way the document's do -- indent or parskip -- instead of the box's zeroed
+  % defaults.
+  before upper={\noteparstyle\claude@colorfootnotes\nobreak\ignorespaces},
   after={\noindent}
 }
 

@@ -90,9 +90,16 @@ asked to migrate.
   `ClaudeSuggest` block leaves the original intact and is trivial to accept or
   drop. When a block is meant to *replace* nearby text rather than add to it,
   say so in its first sentence.
+- **Paragraphs inside notes follow the document's style.** Note bodies and
+  `ClaudeSuggest` blocks restore the document's `\parindent`/`\parskip`
+  (captured at begin-document), so multi-paragraph notes separate their
+  paragraphs the same way the paper does — indentation by default, skips under
+  `\usepackage{parskip}`.
 - **Build before reporting.** These macros are easy to get subtly wrong
   (colors that vanish across a page break, notes that swallow floats), and a
-  broken preamble breaks the collaborator's build too.
+  broken preamble breaks the collaborator's build too. `example.tex` in this
+  skill's directory exercises every note style — rebuild it after changing the
+  packages.
 
 ## After completing each editing task
 

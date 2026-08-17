@@ -1,0 +1,7 @@
+example*.pdf
+example*.aux
+example*.log
+example*.out
+example*.fls
+example*.fdb_latexmk
+example*.synctex.gz

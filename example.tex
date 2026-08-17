@@ -1,0 +1,109 @@
+% example.tex --- demonstrates every note style in mytodonotes + claudenotes
+%
+% Build (from the skill directory, so the .sty files are found):
+%   latexmk -pdf example.tex
+% Parskip variant (paragraphs separated by skips instead of indents):
+%   pdflatex -jobname=example-parskip "\def\exampleparskip{1}\input{example}"
+\documentclass{article}
+\usepackage[left=1in,right=2.9in,top=1in,bottom=1in]{geometry}
+\ifdefined\exampleparskip
+  \usepackage{parskip}
+\fi
+\usepackage{mytodonotes}
+\usepackage{claudenotes}
+\setlength{\marginparwidth}{5.4cm}
+
+% Per-author note macros: three lines each.  The notecolor-<name> colorlet is
+% load-bearing --- \claude[<name>] and friends derive the owner styling from it.
+\colorlet{notecolor-jac}{green!20}
+\newcommand{\jac}[2][]{\note[#1]{jac}{notecolor-jac}{#2}}
+\newcommand{\Jac}[2][]{\jac[inline,#1]{#2}}
+
+\colorlet{notecolor-timv}{magenta!20}
+\newcommand{\timv}[2][]{\note[#1]{timv}{notecolor-timv}{#2}}
+\newcommand{\Timv}[2][]{\timv[inline,#1]{#2}}
+
+\colorlet{notecolor-ryan}{violet!20}
+\newcommand{\ryan}[2][]{\note[#1]{ryan}{notecolor-ryan}{#2}}
+\newcommand{\Ryan}[2][]{\ryan[inline,#1]{#2}}
+
+\title{claudenotes: the whole menagerie\ifdefined\exampleparskip\\(parskip variant)\fi}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Author notes}
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+incididunt ut labore et dolore magna aliqua.\jac{A margin note from jac.
+
+A second paragraph in the same note, to show that paragraphs inside notes
+separate the way the document's paragraphs do.}  Ut enim ad minim veniam, quis
+nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+\Timv{An inline note from timv, spanning more than one paragraph.  Lorem ipsum
+dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
+ut labore et dolore magna aliqua.
+
+The second paragraph of the inline note.  Duis aute irure dolor in
+reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.}
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
+dolore.\notewho{sam}{A comment from someone without their own macros, via
+\texttt{\string\notewho}.}
+
+\section{Threads}
+
+Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia
+deserunt mollit anim id est laborum.\jac{Is this equation right?
+\response{timv} I think so, yes.
+\claudeResponse[jac] Verified numerically; it holds for all tested inputs.}
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium
+doloremque laudantium.
+
+\section{Claude notes}
+
+Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut
+fugit.\claude[jac]{A margin note from jac's Claude session.
+
+Its second paragraph, again following the document's paragraph style.}  Neque
+porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur,
+adipisci velit.
+
+\Claude[timv]{An inline note from timv's Claude session.}
+Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit
+laboriosam; here is an inline suggestion: \claudeSuggest[ryan]{nisi ut aliquid
+ex ea commodi consequatur}, and here is
+\claudechange[jac]{Claude-authored replacement text in place}.
+
+\section{Block suggestions}
+
+\claude[timv]{A margin note placed just before the block --- margin notes
+cannot live inside a \texttt{ClaudeSuggest} box.}
+\begin{ClaudeSuggest}[jac]
+\paragraph{A suggested passage.}
+Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam
+nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas
+nulla pariatur.\footnote{A footnote raised from inside the block; its text
+keeps Claude's color down at the page bottom.}
+
+At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis
+praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias
+excepturi sint occaecati cupiditate non provident.  The second paragraph
+separates from the first the way the document's paragraphs do.
+
+Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus
+saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae.
+\end{ClaudeSuggest}
+
+Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
+voluptatibus maiores alias consequatur aut perferendis doloribus asperiores
+repellat.
+
+\begin{ClaudeSuggest}
+An untagged block, for sessions whose owner is unknown: plain
+\texttt{claude} label, no \texttt{@owner}.
+\end{ClaudeSuggest}
+
+\end{document}

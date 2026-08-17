@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TODONOTE CONFIGURATION
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{mytodonotes}[2026/07/30 v1.1 todonotes configuration]
+\ProvidesPackage{mytodonotes}[2026/08/14 v1.2 todonotes configuration]
 \RequirePackage[textsize=scriptsize]{todonotes} % [disable]
 \tikzset{
   notestyleraw/.append style={
@@ -15,7 +15,23 @@
 \makeatletter
 \newcommand*\iftodonotes{\if@todonotes@disabled\expandafter\@secondoftwo\else\expandafter\@firstoftwo\fi}  % defines \iftodonotes{<true>}{<false>}, thanks to \makeatother
 \newcommand{\noindentaftertodo}{\iftodonotes{\noindent}{}}
-\newcommand{\note}[4][]{\todo[color=#3,bordercolor=#3,caption={},#1]{\textbf{#2}: #4}}
+
+% Paragraphs inside notes follow the document's paragraph style.  Note bodies
+% are typeset in minipage-like boxes, which zero both \parindent and \parskip,
+% so multi-paragraph notes lose whichever separator the document uses (the
+% indent by default; the skip under \usepackage{parskip}).  Capture the
+% document's values once it is fully set up, and let \noteparstyle restore
+% them inside a note body.
+\newlength{\note@parindent}
+\newlength{\note@parskip}
+\AtBeginDocument{%
+  \setlength{\note@parindent}{\parindent}%
+  \setlength{\note@parskip}{\parskip}}
+\newcommand{\noteparstyle}{%
+  \setlength{\parindent}{\note@parindent}%
+  \setlength{\parskip}{\note@parskip}}
+
+\newcommand{\note}[4][]{\todo[color=#3,bordercolor=#3,caption={},#1]{\noteparstyle\textbf{#2}: #4}}
 \newcommand{\response}[1]{\vspace{3pt}\hrule\vspace{3pt}\textbf{#1:}}   % insert \response{myname} within someone else's todonote
 \newcommand{\notewho}[3][]{\note[#1]{#2}{blue!40}{#3}}     % for other commenters: specify author name in first required arg
 \newcommand{\Notewho}[3][]{\notewho[inline,#1]{#2}{#3}\noindentaftertodo}
