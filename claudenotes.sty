@@ -33,7 +33,7 @@
 %% Per-paper re-tinting: redefine ClaudeColor and ClaudeNoteBG after loading.
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{claudenotes}[2026/08/14 v1.14 owner-tagged Claude todonotes]
+\ProvidesPackage{claudenotes}[2026/08/14 v1.15 owner-tagged Claude todonotes]
 \RequirePackage{mytodonotes}
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
@@ -84,6 +84,7 @@
   \endgroup}
 \NewDocumentCommand{\claude}{O{claude} O{} +m}{%
   \claude@setaccent{#1}%
+  \noteframecolor{claude-accent}% frame of a breakable inline note (\Claude)
   \note[bordercolor=claude-accent,linecolor=claude-accent,#2]%
     {\claude@setaccent{#1}\claude@who{#1}}{ClaudeNoteBG}{#3}}
 \NewDocumentCommand{\Claude}{O{claude} O{} +m}{%

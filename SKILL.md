@@ -90,6 +90,11 @@ asked to migrate.
   `ClaudeSuggest` block leaves the original intact and is trivial to accept or
   drop. When a block is meant to *replace* nearby text rather than add to it,
   say so in its first sentence.
+- **Inline notes break across pages.** `[inline]` notes are typeset as a
+  breakable box (todonotes' own inline notes are single unbreakable TikZ
+  nodes), so a long inline comment flows onto the next page instead of
+  overflowing it. Other todonotes options passed alongside `inline` are
+  ignored on this path.
 - **Paragraphs inside notes follow the document's style.** Note bodies and
   `ClaudeSuggest` blocks restore the document's `\parindent`/`\parskip`
   (captured at begin-document), so multi-paragraph notes separate their
