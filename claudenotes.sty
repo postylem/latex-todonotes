@@ -33,7 +33,7 @@
 %% Per-paper re-tinting: redefine ClaudeColor and ClaudeNoteBG after loading.
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{claudenotes}[2026/08/14 v1.15 owner-tagged Claude todonotes]
+\ProvidesPackage{claudenotes}[2026/08/18 v1.16 owner-tagged Claude todonotes]
 \RequirePackage{mytodonotes}
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
@@ -100,15 +100,19 @@
 
 % Block suggestions: purple changebar and text, headed by a small bold
 % "claude@<owner>" label (default owner shows just "claude")
+% The suggestion reads as regular document text that happens to be purple: the
+% text occupies the full text width (left=0pt), and the changebar hangs in the
+% left GUTTER, \claude@gutterskip out from the text edge, marking the block
+% without displacing it.
 % A flag at the top of a flagpole: the label's chip meets the changebar edge to
 % edge, and their top edges are level -- no overlap, no overshoot either way.
 %
 % Horizontally: the pole is drawn as an explicit rectangle spanning
-% [-\claude@barwd, 0] from the frame's west edge, rather than with `borderline
-% west`, whose offset is measured from the centre of the line and so makes
-% "where does the paint actually stop" a matter of sign convention.  Its right
-% edge is therefore exactly 0pt, and the flag starts at 0pt too: the node is
-% shifted right by \claude@chippad so that the chip's own left bleed lands there.
+% [-\claude@gutterskip-\claude@barwd, -\claude@gutterskip] from the frame's
+% west edge, rather than with `borderline west`, whose offset is measured from
+% the centre of the line and so makes "where does the paint actually stop" a
+% matter of sign convention.  The flag starts at the pole's right edge: the
+% node is shifted so that the chip's own left bleed lands there.
 %
 % Vertically: the label carries a \strut, so its node's top is the baseline plus
 % \ht\strutbox -- the very quantity \claude@chiprule measures the chip from.
@@ -117,6 +121,7 @@
 % would be sized by the glyphs actually present, and the alignment would drift
 % with the label text.
 \newlength{\claude@barwd}\setlength{\claude@barwd}{3pt}   % changebar width
+\newlength{\claude@gutterskip}\setlength{\claude@gutterskip}{8pt}  % bar's distance into the gutter
 \newlength{\claude@labelx}
 \newlength{\claude@labelgap}\setlength{\claude@labelgap}{15pt}  % room above the first line for the label tab
 \newcommand{\claude@blocklabel}[1]{%
@@ -124,7 +129,8 @@
 % The pole, drawn on every part of a breakable block
 \newcommand{\claude@pole}{%
   \fill[ClaudeColor]
-    ([xshift=-\claude@barwd]frame.north west) rectangle (frame.south west);}
+    ([xshift=-\dimexpr\claude@gutterskip+\claude@barwd\relax]frame.north west)
+    rectangle ([xshift=-\claude@gutterskip]frame.south west);}
 % Footnotes raised inside a suggestion keep Claude's color: their text is
 % typeset at the page bottom, outside the box and its colupper, so wrap the
 % body in Claude purple as it is collected.  \let/\def keep the redefinition
@@ -139,7 +145,11 @@
   breakable,
   code={\claude@setaccent{#1}},
   sharp corners,
-  left=8pt,
+  left=0pt,   % text at full width; the changebar lives in the gutter
+  % parbox=false: the content is typeset like ordinary text, keeping the
+  % document's \parindent and \parskip, instead of the parbox-like defaults
+  % that zero both (which \noteparstyle in before upper did not survive).
+  parbox=false,
   before skip=10pt,
   after skip=10pt,
   % The label rides in an overlay rather than in the text flow, so it costs no
@@ -148,7 +158,7 @@
   top=\claude@labelgap,
   overlay unbroken and first={%
     \claude@pole
-    \setlength{\claude@labelx}{\claude@chippad}%
+    \setlength{\claude@labelx}{\dimexpr\claude@chippad-\claude@gutterskip\relax}%
     \node[anchor=north west, inner sep=0pt, outer sep=0pt,
           xshift=\claude@labelx, yshift=-\claude@chiprise]
       at (frame.north west) {\claude@blocklabel{#1}};},
@@ -156,10 +166,10 @@
   % colupper, not \color in before upper: the latter is applied once and is lost
   % where a breakable box continues onto the next page.
   colupper=ClaudeColor,
-  % \noteparstyle (from mytodonotes): paragraphs inside the block separate the
-  % way the document's do -- indent or parskip -- instead of the box's zeroed
-  % defaults.
-  before upper={\noteparstyle\claude@colorfootnotes\nobreak\ignorespaces},
+  % parbox=false already carries the document's \parindent and \parskip into
+  % the block; \notefixminipageflag (from mytodonotes) keeps a leading run-in
+  % \paragraph from suppressing \parskip for the rest of the box.
+  before upper={\notefixminipageflag\claude@colorfootnotes\nobreak\ignorespaces},
   after={\noindent}
 }
 

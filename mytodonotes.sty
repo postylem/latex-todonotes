@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TODONOTE CONFIGURATION
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{mytodonotes}[2026/08/14 v1.3 todonotes configuration]
+\ProvidesPackage{mytodonotes}[2026/08/18 v1.5 todonotes configuration]
 \RequirePackage[textsize=scriptsize]{todonotes} % [disable]
 \RequirePackage[most]{tcolorbox}   % breakable inline notes
 \tikzset{
@@ -28,9 +28,20 @@
 \AtBeginDocument{%
   \setlength{\note@parindent}{\parindent}%
   \setlength{\note@parskip}{\parskip}}
+% A run-in heading (\paragraph) as the first thing in a minipage-like box
+% clobbers the box's \everypar before it can clear \if@minipage, and the
+% kernel's paragraph handling (ltpara) cancels the auto-inserted \parskip
+% glue with -\parskip while that flag is true -- so every later paragraph in
+% the box loses its parskip.  Clearing the flag at the first paragraph's
+% para/begin hook reproduces what the box's own \everypar would have done,
+% at the same effective timing: the flag still suppresses \parskip at the
+% box top (that decision predates the hook), and is gone afterwards.
+\newcommand{\notefixminipageflag}{%
+  \AddToHookNext{para/begin}{\global\@minipagefalse}}
 \newcommand{\noteparstyle}{%
   \setlength{\parindent}{\note@parindent}%
-  \setlength{\parskip}{\note@parskip}}
+  \setlength{\parskip}{\note@parskip}%
+  \notefixminipageflag}
 
 % Inline notes break across pages.  todonotes typesets [inline] notes as a
 % single TikZ node, which cannot split, so a long inline comment overflows its
@@ -63,7 +74,20 @@
     \todo[color=#3,bordercolor=#3,caption={},#1]{\noteparstyle\textbf{#2}: #4}%
   \fi
   \def\note@frameoverride{}}
-\newcommand{\response}[1]{\vspace{3pt}\hrule\vspace{3pt}\textbf{#1:}}   % insert \response{myname} within someone else's todonote
+% \response{<name>} starts a new author's reply within someone else's note.
+% The reply is the first paragraph of its own little section: never indented,
+% while later paragraphs by the same author separate per \noteparstyle.  The
+% divider rule does the separating between authors, so it gets a fixed 3pt on
+% each side with no \parskip contribution -- notes are cramped, and rule plus
+% skip would be paying twice.  TeX still re-inserts \parskip when the reply
+% paragraph starts, so the lower \vspace pre-subtracts the whole thing.
+\newcommand{\response}[1]{%
+  \par
+  \vspace{3pt}%
+  \hrule
+  \nobreak
+  \vspace{\glueexpr 3pt-\parskip\relax}%
+  \noindent\textbf{#1:}}
 \newcommand{\notewho}[3][]{\note[#1]{#2}{blue!40}{#3}}     % for other commenters: specify author name in first required arg
 \newcommand{\Notewho}[3][]{\notewho[inline,#1]{#2}{#3}\noindentaftertodo}
 

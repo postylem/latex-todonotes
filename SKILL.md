@@ -47,8 +47,10 @@ owner from context (repo CLAUDE.md, git user name) or ask; do not guess.
 - **Claude-authored replacement text**: `\claudechange[<owner>]{...}` —
   renders in Claude purple; the owner argument is provenance
 - **New block-level text**: wrap in
-  `\begin{ClaudeSuggest}[<owner>]...\end{ClaudeSuggest}` (renders in Claude
-  purple with a purple changebar, headed by a small `claude@<owner>` label)
+  `\begin{ClaudeSuggest}[<owner>]...\end{ClaudeSuggest}` (renders like
+  regular document text, just in Claude purple: full text width, with a
+  purple changebar hanging in the left gutter, headed by a small
+  `claude@<owner>` label)
 
 Every one of these labels is set the same way: `claude` in Claude purple on
 Claude's own tint, then `@<owner>` in the ordinary text color on
@@ -95,11 +97,13 @@ asked to migrate.
   nodes), so a long inline comment flows onto the next page instead of
   overflowing it. Other todonotes options passed alongside `inline` are
   ignored on this path.
-- **Paragraphs inside notes follow the document's style.** Note bodies and
-  `ClaudeSuggest` blocks restore the document's `\parindent`/`\parskip`
-  (captured at begin-document), so multi-paragraph notes separate their
-  paragraphs the same way the paper does — indentation by default, skips under
-  `\usepackage{parskip}`.
+- **Paragraphs inside notes follow the document's style.** Note bodies
+  restore the document's `\parindent`/`\parskip` (captured at
+  begin-document), and `ClaudeSuggest` blocks keep them directly
+  (`parbox=false`), so multi-paragraph notes and blocks separate their
+  paragraphs the same way the paper does — indentation by default, skips
+  under `\usepackage{parskip}`. Between `\response` turns, a rule with a
+  fixed 3pt on each side does the separating instead of `\parskip`.
 - **Build before reporting.** These macros are easy to get subtly wrong
   (colors that vanish across a page break, notes that swallow floats), and a
   broken preamble breaks the collaborator's build too. `example.tex` in this
