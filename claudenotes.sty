@@ -5,17 +5,19 @@
 %%   \usepackage{claudenotes}
 %%
 %% Macros:
-%%   \claude[jac]{...}        margin note, labeled "claude@jac"
+%%   \claude[jac]{...}        margin note, labeled "Claude@jac"
 %%   \Claude[jac]{...}        inline variant
 %%   \claudeResponse[jac]     reply inside another author's note
-%%   \claudeSuggest[jac]{...} small inline text suggestion, in Claude purple
+%%   \claudeSuggest[jac]{...} small inline text suggestion, in Claude's color
 %%   \claudechange[jac]{...}  Claude-authored replacement text (owner arg is
-%%                            provenance only; renders in Claude purple)
+%%                            provenance only; renders in Claude's color)
 %%   \begin{ClaudeSuggest}[jac]...\end{ClaudeSuggest}  block suggestion
-%%                            (purple changebar; small "claude@jac" label)
+%%                            (gutter changebar; small "Claude@jac" label)
 %%
-%% Every label reads "claude@<owner>": "claude" in Claude purple on Claude's
-%% own tint, then "@<owner>" in the default text color on notecolor-<owner>
+%% Every label reads "Claude@<owner>", opened by Claude Code's terminal
+%% starburst (pifont \ding{91}): the starburst and "Claude" in Claude's color
+%% on Claude's own tint, then "@<owner>" in the default text color on
+%% notecolor-<owner>
 %% itself, unmodified -- so the owner half looks just like that author's name
 %% does in their own notes.  Owner colors are picked to sit behind text, so
 %% they are used as backgrounds and never as text colors.  The note's frame,
@@ -28,25 +30,37 @@
 %%   \newcommand{\jac}[2][]{\note[#1]{jac}{notecolor-jac}{#2}}
 %%   \newcommand{\Jac}[2][]{\jac[inline,#1]{#2}}
 %% An owner without a notecolor (or an omitted owner) falls back to plain
-%% purple, so an untabulated owner never breaks the build.
+%% Claude's color, so an untabulated owner never breaks the build.
 %%
-%% Per-paper re-tinting: redefine ClaudeColor and ClaudeNoteBG after loading.
+%% Per-paper re-tinting: redefine ClaudeColor, ClaudeTextColor, and
+%% ClaudeNoteBG after loading.
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{claudenotes}[2026/08/18 v1.18 owner-tagged Claude todonotes]
+\ProvidesPackage{claudenotes}[2026/08/18 v1.22 owner-tagged Claude todonotes]
 \RequirePackage{mytodonotes}
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
+\RequirePackage{pifont}   % \ding{91}: teardrop-spangled asterisk (U+273B)
 
-\definecolor{ClaudeColor}{RGB}{110,60,160}   % claude purple
-\colorlet{ClaudeNoteBG}{ClaudeColor!17}      % claude note background
+% ClaudeColor is the brand hue and is used as PAINT (backgrounds, the block
+% pole, frame fallbacks); ClaudeTextColor is the same hue darkened for use as
+% TEXT -- the pure terracotta is too light to read comfortably at \scriptsize.
+\definecolor{ClaudeColor}{RGB}{212,108,77}       % claude terracotta
+\colorlet{ClaudeTextColor}{ClaudeColor!80!black} % claude text color
+\colorlet{ClaudeNoteBG}{ClaudeColor!17}          % claude note background
 
+% Claude Code's terminal starburst, rendered just before the word "Claude" in
+% every label: a signature no author note can carry, legible whatever colors
+% the authors chose (and in grayscale).  U+273B lives in ZapfDingbats, so
+% pifont's \ding{91} renders it without any drawing.
+\newcommand{\claudespark}{\ding{91}}
+\newcommand{\claude@sparkword}{\claudespark\kern0.12em Claude}
 \@namedef{claude@who@claude}{claude}
 \newcommand{\claude@setaccent}[1]{%
   \@ifundefinedcolor{notecolor-#1}%
     {\colorlet{claude-accent}{ClaudeColor}}%
     {\colorlet{claude-accent}{notecolor-#1}}}
-% The label, everywhere it appears: "claude" in Claude purple on Claude's own
+% The label, everywhere it appears: "Claude" in Claude's color on Claude's own
 % tint, then "@owner" in the DEFAULT text color on the owner's note color --
 % so the owner half matches how that author's name already looks in their own
 % \<author> notes and \response{<author>}.  Owner colors are chosen to sit
@@ -73,14 +87,14 @@
   \begingroup
   \claude@setownerbg{#1}%
   \ifcsname claude@who@#1\endcsname\def\claude@owner{}\else\def\claude@owner{@#1}\fi
-  \settowidth{\claude@wordwd}{claude}%
+  \settowidth{\claude@wordwd}{\claude@sparkword}%
   \settowidth{\claude@ownerwd}{\claude@owner}%
   \raisebox{0pt}[0pt][0pt]{\rlap{\kern-\claude@chippad
     \textcolor{ClaudeNoteBG}{%
       \claude@chiprule{\dimexpr\claude@wordwd+\claude@chippad\relax}}%
     \textcolor{claude-ownerbg}{%
       \claude@chiprule{\dimexpr\claude@ownerwd+\claude@chippad\relax}}}}%
-  \textcolor{ClaudeColor}{claude}{\normalcolor\claude@owner}%
+  \textcolor{ClaudeTextColor}{\claude@sparkword}{\normalcolor\claude@owner}%
   \endgroup}
 \NewDocumentCommand{\claude}{O{claude} O{} +m}{%
   \claude@setaccent{#1}%
@@ -90,17 +104,17 @@
 \NewDocumentCommand{\Claude}{O{claude} O{} +m}{%
   \claude[#1][inline,#2]{#3}}
 \NewDocumentCommand{\claudechange}{O{claude} +m}{%
-  \textcolor{ClaudeColor}{#2}}
+  \textcolor{ClaudeTextColor}{#2}}
 \NewDocumentCommand{\claudeSuggest}{O{claude} +m}{%
-  {\claude@setaccent{#1}\color{ClaudeColor}\textbf{\claude@who{#1}}: #2}}
+  {\claude@setaccent{#1}\color{ClaudeTextColor}\textbf{\claude@who{#1}}: #2}}
 % Reply inside another author's note, labeled like the note headers above.
 % Routed through \response so it inherits that macro's rule and spacing.
 \NewDocumentCommand{\claudeResponse}{O{claude}}{%
   \response{\claude@setaccent{#1}\claude@who{#1}}}
 
-% Block suggestions: purple changebar and text, headed by a small bold
-% "claude@<owner>" label (default owner shows just "claude")
-% The suggestion reads as regular document text that happens to be purple: the
+% Block suggestions: gutter changebar and Claude-colored text, headed by a small bold
+% "Claude@<owner>" label (default owner shows just "Claude")
+% The suggestion reads as regular document text in Claude's text color: the
 % text occupies the full text width (left=0pt), and the changebar hangs in the
 % left GUTTER, \claude@gutterskip out from the text edge, marking the block
 % without displacing it.
@@ -145,13 +159,13 @@
         frame.south west);}}
 % Footnotes raised inside a suggestion keep Claude's color: their text is
 % typeset at the page bottom, outside the box and its colupper, so wrap the
-% body in Claude purple as it is collected.  \let/\def keep the redefinition
+% body in Claude's text color as it is collected.  \let/\def keep the redefinition
 % local to the box group.
 \newcommand{\claude@colorfootnotes}{%
   \let\claude@fn\footnote
   \def\footnote{\@ifnextchar[\claude@fnopt\claude@fnplain}}
-\def\claude@fnopt[#1]#2{\claude@fn[#1]{\textcolor{ClaudeColor}{#2}}}
-\def\claude@fnplain#1{\claude@fn{\textcolor{ClaudeColor}{#1}}}
+\def\claude@fnopt[#1]#2{\claude@fn[#1]{\textcolor{ClaudeTextColor}{#2}}}
+\def\claude@fnplain#1{\claude@fn{\textcolor{ClaudeTextColor}{#1}}}
 \NewTColorBox{ClaudeSuggest}{O{claude}}{
   blanker,
   breakable,
@@ -168,16 +182,29 @@
   % vertical space of its own; `top` is the whole gap between it and the first
   % line.  `unbroken and first` keeps it off continuation pages.
   top=\claude@labelgap,
+  % The owner's stripe turns the corner at the flag: a cap of the same
+  % thickness runs along the flag's top, from the stripe's own left edge to
+  % the chip's right bleed, sitting just above frame.north (where the chip's
+  % painted top edge lies), so stripe and cap meet in a clean L.  The node is
+  % named so the cap can find the label's right edge whatever its text is.
   overlay unbroken and first={%
     \claude@pole{#1}%
     \setlength{\claude@labelx}{\dimexpr\claude@chippad-\claude@gutterskip\relax}%
     \node[anchor=north west, inner sep=0pt, outer sep=0pt,
           xshift=\claude@labelx, yshift=-\claude@chiprise]
-      at (frame.north west) {\claude@blocklabel{#1}};},
+      (claudeflag) at (frame.north west) {\claude@blocklabel{#1}};
+    \@ifundefinedcolor{notecolor-#1}{}{%
+      \fill[notecolor-#1]
+        ([xshift=-\dimexpr\claude@gutterskip+\claude@barwd
+                         +\claude@ownerbarwd\relax]frame.north west)
+        rectangle
+        ([xshift=\claude@chippad,
+          yshift=\dimexpr\claude@chiprise+\claude@ownerbarwd\relax]%
+          claudeflag.north east);};},
   overlay middle and last={\claude@pole{#1}},
   % colupper, not \color in before upper: the latter is applied once and is lost
   % where a breakable box continues onto the next page.
-  colupper=ClaudeColor,
+  colupper=ClaudeTextColor,
   % parbox=false already carries the document's \parindent and \parskip into
   % the block; \notefixminipageflag (from mytodonotes) keeps a leading run-in
   % \paragraph from suppressing \parskip for the rest of the box.

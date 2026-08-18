@@ -38,22 +38,24 @@ Claude's notes and edits carry an *owner* tag naming whose Claude session made
 them — the human running the session, lowercase (e.g. `jac`). Determine the
 owner from context (repo CLAUDE.md, git user name) or ask; do not guess.
 
-- **Margin notes**: `\claude[<owner>]{note text}` — labeled `claude@<owner>`
+- **Margin notes**: `\claude[<owner>]{note text}` — labeled `Claude@<owner>`
 - **Inline notes**: `\Claude[<owner>]{note text}`
 - **Replies in another author's note**: `\claudeResponse[<owner>]` — the
-  `\response` rule and spacing, headed `claude@<owner>`
+  `\response` rule and spacing, headed `Claude@<owner>`
 - **Inline suggestions**: `\claudeSuggest[<owner>]{suggested text}` for small
   inline changes proposed but not applied
 - **Claude-authored replacement text**: `\claudechange[<owner>]{...}` —
-  renders in Claude purple; the owner argument is provenance
+  renders in Claude's color; the owner argument is provenance
 - **New block-level text**: wrap in
   `\begin{ClaudeSuggest}[<owner>]...\end{ClaudeSuggest}` (renders like
-  regular document text, just in Claude purple: full text width, with a
+  regular document text, just in Claude's color: full text width, with a
   changebar in Claude's background tint hanging in the left gutter — plus a
-  thin stripe in the owner's note color abutting it, on every page the block
-  spans — headed by a small `claude@<owner>` label)
+  thin stripe in the owner's note color abutting it on every page the block
+  spans, capping the label flag on the first — headed by a small
+  `Claude@<owner>` label)
 
-Every one of these labels is set the same way: `claude` in Claude purple on
+Every one of these labels is set the same way: Claude Code's terminal
+starburst (✻, pifont `\ding{91}`) and `Claude` in Claude's color on
 Claude's own tint, then `@<owner>` in the ordinary text color on
 `notecolor-<owner>` itself, unmodified. The owner half therefore looks exactly
 like that author's name already does in their own `\<author>{...}` note or
@@ -64,16 +66,17 @@ Author note colors are chosen to sit *behind* text, so they are used as
 backgrounds and never as text colors. An earlier version of this package tinted
 the `@<owner>` text with a darkened author color instead, which read poorly in
 general and became nearly invisible in the commonest case of all: a
-`\claudeResponse[<owner>]` inside a note belonging to that same owner. The one
-place a darkened author color is still used is `\claude`'s note frame and
-leader line, where a saturated color is what is wanted.
+`\claudeResponse[<owner>]` inside a note belonging to that same owner. Where an
+owner color marks non-text elements — `\claude`'s note frame and leader line,
+the block pole's stripe and flag cap — it is `notecolor-<owner>` itself,
+unmodified, so the owner reads as one color everywhere.
 
 The backgrounds are painted as rules in a zero-width, zero-height overlay, so a
 label's metrics are exactly those of the plain text — adding one never shifts
 anything horizontally or vertically.
 
 Omitting `[<owner>]` (or naming an owner without a `notecolor`) falls back to
-plain purple with no `@` suffix; prefer always tagging the owner so multi-author
+plain Claude color with no `@` suffix; prefer always tagging the owner so multi-author
 projects can tell whose session made an edit.
 
 **Legacy projects**: papers set up with the older convention use

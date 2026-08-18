@@ -12,14 +12,15 @@ It teaches Claude a margin-comment workflow:
 - **Mark Claude's contributions** with owner-tagged macros
   (`\claude[owner]{...}`, `\Claude[owner]{...}`, `\claudeResponse[owner]`,
   `\claudeSuggest[owner]{...}`, `\claudechange[owner]{...}`, and the
-  `ClaudeSuggest` block environment), all in a shared Claude purple with a
+  `ClaudeSuggest` block environment), all in a shared Claude terracotta with a
   per-owner background tint, so multi-author projects can tell whose Claude
   session made an edit.
 - **Enumerate open items** (author notes, Claude notes, suggestions, TODOs)
   after each editing task.
 
-Every Claude label renders as `claude@owner`: `claude` in Claude purple on
-Claude's own tint, then `@owner` in the ordinary text color on that author's own
+Every Claude label renders as `✻Claude@owner`: Claude Code's terminal
+starburst and `Claude` in Claude's color on Claude's own tint, then `@owner`
+in the ordinary text color on that author's own
 note color — so the owner half looks just like their name does in their own
 notes. The color is looked up from the `notecolor-<owner>` colorlet that sits
 beside each author's note macro, so adding an author needs no Claude-specific
