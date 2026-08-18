@@ -49,8 +49,9 @@ owner from context (repo CLAUDE.md, git user name) or ask; do not guess.
 - **New block-level text**: wrap in
   `\begin{ClaudeSuggest}[<owner>]...\end{ClaudeSuggest}` (renders like
   regular document text, just in Claude purple: full text width, with a
-  purple changebar hanging in the left gutter, headed by a small
-  `claude@<owner>` label)
+  changebar in Claude's background tint hanging in the left gutter — plus a
+  thin stripe in the owner's note color abutting it, on every page the block
+  spans — headed by a small `claude@<owner>` label)
 
 Every one of these labels is set the same way: `claude` in Claude purple on
 Claude's own tint, then `@<owner>` in the ordinary text color on
@@ -132,9 +133,10 @@ When asked to set up the todonotes workflow in a new LaTeX project:
    \newcommand{\jac}[2][]{\note[#1]{jac}{notecolor-jac}{#2}}
    \newcommand{\Jac}[2][]{\jac[inline,#1]{#2}}
    ```
-   The `notecolor-<name>` colorlet is load-bearing: `\claude[<name>]` derives
-   its accent from it automatically, so a new author needs **no
-   Claude-specific setup**. Check that a name doesn't clash with an existing
+   The `notecolor-<name>` colorlet is load-bearing: `\claude[<name>]` takes
+   its owner styling from it automatically (borders, leader lines, and the
+   block pole's owner stripe all use the color unmodified), so a new author
+   needs **no Claude-specific setup**. Check that a name doesn't clash with an existing
    LaTeX command (an author named `max` or `sec` needs a variant) before
    defining it
 4. Write a **self-contained CLAUDE.md** in the paper repo describing the
@@ -163,4 +165,4 @@ the preamble and an untagged `\claude`. To migrate:
    accordingly, rather than guessing from the prose
 3. Rebuild and compare the rendering: plain author notes should look unchanged
    (`mytodonotes.sty` sets `bordercolor = fill`, so only `\claude` notes gain a
-   visible accent frame)
+   visible owner-colored frame)

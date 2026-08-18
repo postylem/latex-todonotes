@@ -18,9 +18,9 @@
 %% own tint, then "@<owner>" in the default text color on notecolor-<owner>
 %% itself, unmodified -- so the owner half looks just like that author's name
 %% does in their own notes.  Owner colors are picked to sit behind text, so
-%% they are used as backgrounds and never as text colors.  The note's frame and
-%% leader line do take a darkened notecolor-<owner>, where a saturated color is
-%% what is wanted.
+%% they are used as backgrounds and never as text colors.  The note's frame,
+%% leader line, and the block pole's owner stripe all take notecolor-<owner>
+%% itself, unmodified, so the owner reads as one color everywhere.
 %% Authors set up nothing Claude-specific: \claude[<name>] finds the color
 %% `notecolor-<name>` that the author defined next to their own note macros
 %% in the document preamble, i.e. the three-line pattern
@@ -33,7 +33,7 @@
 %% Per-paper re-tinting: redefine ClaudeColor and ClaudeNoteBG after loading.
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{claudenotes}[2026/08/18 v1.16 owner-tagged Claude todonotes]
+\ProvidesPackage{claudenotes}[2026/08/18 v1.18 owner-tagged Claude todonotes]
 \RequirePackage{mytodonotes}
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
@@ -45,7 +45,7 @@
 \newcommand{\claude@setaccent}[1]{%
   \@ifundefinedcolor{notecolor-#1}%
     {\colorlet{claude-accent}{ClaudeColor}}%
-    {\colorlet{claude-accent}{notecolor-#1!75!black}}}
+    {\colorlet{claude-accent}{notecolor-#1}}}
 % The label, everywhere it appears: "claude" in Claude purple on Claude's own
 % tint, then "@owner" in the DEFAULT text color on the owner's note color --
 % so the owner half matches how that author's name already looks in their own
@@ -126,11 +126,23 @@
 \newlength{\claude@labelgap}\setlength{\claude@labelgap}{15pt}  % room above the first line for the label tab
 \newcommand{\claude@blocklabel}[1]{%
   {\scriptsize\bfseries\claude@setaccent{#1}\strut\claude@who{#1}}}
-% The pole, drawn on every part of a breakable block
-\newcommand{\claude@pole}{%
-  \fill[ClaudeColor]
+% The pole, drawn on every part of a breakable block: a bar in Claude's
+% background tint, plus a thin stripe in the owner's note color abutting it
+% directly on the left, so whose Claude instance wrote a long block stays
+% readable on every page it spans.  An owner without a notecolor (or an
+% omitted owner) draws no stripe -- it would only repeat Claude's color.
+\newlength{\claude@ownerbarwd}\setlength{\claude@ownerbarwd}{1pt}   % owner stripe width
+\newcommand{\claude@pole}[1]{%
+  \fill[ClaudeNoteBG]
     ([xshift=-\dimexpr\claude@gutterskip+\claude@barwd\relax]frame.north west)
-    rectangle ([xshift=-\claude@gutterskip]frame.south west);}
+    rectangle ([xshift=-\claude@gutterskip]frame.south west);
+  \@ifundefinedcolor{notecolor-#1}{}{%
+    \fill[notecolor-#1]
+      ([xshift=-\dimexpr\claude@gutterskip+\claude@barwd
+                       +\claude@ownerbarwd\relax]frame.north west)
+      rectangle
+      ([xshift=-\dimexpr\claude@gutterskip+\claude@barwd\relax]%
+        frame.south west);}}
 % Footnotes raised inside a suggestion keep Claude's color: their text is
 % typeset at the page bottom, outside the box and its colupper, so wrap the
 % body in Claude purple as it is collected.  \let/\def keep the redefinition
@@ -157,12 +169,12 @@
   % line.  `unbroken and first` keeps it off continuation pages.
   top=\claude@labelgap,
   overlay unbroken and first={%
-    \claude@pole
+    \claude@pole{#1}%
     \setlength{\claude@labelx}{\dimexpr\claude@chippad-\claude@gutterskip\relax}%
     \node[anchor=north west, inner sep=0pt, outer sep=0pt,
           xshift=\claude@labelx, yshift=-\claude@chiprise]
       at (frame.north west) {\claude@blocklabel{#1}};},
-  overlay middle and last={\claude@pole},
+  overlay middle and last={\claude@pole{#1}},
   % colupper, not \color in before upper: the latter is applied once and is lost
   % where a breakable box continues onto the next page.
   colupper=ClaudeColor,
