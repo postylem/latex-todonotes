@@ -108,6 +108,12 @@ asked to migrate.
   paragraphs the same way the paper does — indentation by default, skips
   under `\usepackage{parskip}`. Between `\response` turns, a rule with a
   fixed 3pt on each side does the separating instead of `\parskip`.
+- **A note never changes the surrounding indentation.** `\marginpar` (and
+  hence todonotes' `\todo`) issued in vertical mode clears `\if@nobreak`, so a
+  note placed between a heading and its first paragraph used to silently
+  re-enable that paragraph's indent. `\note` (mytodonotes v1.6) snapshots the
+  flag and restores it after the note, for margin and inline notes alike: the
+  next paragraph indents exactly as it would have without the note.
 - **Build before reporting.** These macros are easy to get subtly wrong
   (colors that vanish across a page break, notes that swallow floats), and a
   broken preamble breaks the collaborator's build too. `example.tex` in this

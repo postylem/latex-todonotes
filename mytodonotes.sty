@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TODONOTE CONFIGURATION
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{mytodonotes}[2026/08/18 v1.5 todonotes configuration]
+\ProvidesPackage{mytodonotes}[2026/08/21 v1.6 todonotes configuration]
 \RequirePackage[textsize=scriptsize]{todonotes} % [disable]
 \RequirePackage[most]{tcolorbox}   % breakable inline notes
 \tikzset{
@@ -66,13 +66,24 @@
       before skip=\medskipamount, after skip=\medskipamount]
     \scriptsize\noteparstyle\noindent\textbf{#1}: #3%
   \end{tcolorbox}}
+% Adding a note must not change the surrounding indentation.  \marginpar (and
+% hence todonotes' \todo) issued in vertical mode clears \if@nobreak, so a
+% margin note sitting between a heading and its first paragraph silently
+% re-enables that paragraph's indent -- the after-heading \everypar is still
+% armed, it just no longer sees the flag it keys on.  Snapshot the flag before
+% the note and restore it after, so the next paragraph indents exactly as it
+% would have without the note.  The same restore covers inline notes.
+\newif\ifnote@nobreak
 \newcommand{\note}[4][]{%
+  \note@nobreakfalse
+  \ifvmode\if@nobreak\note@nobreaktrue\fi\fi
   \in@{inline}{#1}%
   \ifin@
     \iftodonotes{\note@inline{#2}{#3}{#4}}{}%
   \else
     \todo[color=#3,bordercolor=#3,caption={},#1]{\noteparstyle\textbf{#2}: #4}%
   \fi
+  \ifnote@nobreak\global\@nobreaktrue\fi
   \def\note@frameoverride{}}
 % \response{<name>} starts a new author's reply within someone else's note.
 % The reply is the first paragraph of its own little section: never indented,
