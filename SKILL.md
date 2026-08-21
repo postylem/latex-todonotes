@@ -112,7 +112,8 @@ asked to migrate.
   (colors that vanish across a page break, notes that swallow floats), and a
   broken preamble breaks the collaborator's build too. `example.tex` in this
   skill's directory exercises every note style — rebuild it after changing the
-  packages.
+  packages, and refresh the committed `example.pdf`/`example-parskip.pdf`
+  (they are in the repo so humans can browse the styles without building).
 
 ## After completing each editing task
 

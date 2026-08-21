@@ -37,10 +37,12 @@ The LaTeX side lives in two packages shipped with the skill:
 Copy both into the paper directory and commit them, so collaborators who clone
 the repo can build it.
 
-`example.tex` exercises every note style with lorem-ipsum content — build it in
-the skill directory with `latexmk -pdf example.tex` (see its header comment for
-the parskip variant) to preview the whole menagerie after any change to the
-packages.
+`example.tex` exercises every note style with lorem-ipsum content — the built
+PDFs are committed for browsing without building: [example.pdf](example.pdf)
+(indented paragraphs) and [example-parskip.pdf](example-parskip.pdf) (under
+`\usepackage{parskip}`). Rebuild them in the skill directory with
+`latexmk -pdf example.tex` (see the header comment for the parskip variant)
+after any change to the packages.
 
 See [SKILL.md](SKILL.md) for the full workflow, including the three-line
 per-author macro pattern, how to set up a new paper, and how to migrate one
