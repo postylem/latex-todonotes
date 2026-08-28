@@ -143,7 +143,7 @@ When asked to set up the todonotes workflow in a new LaTeX project:
    \newcommand{\jac}[2][]{\note[#1]{jac}{notecolor-jac}{#2}}
    \newcommand{\Jac}[2][]{\jac[inline,#1]{#2}}
    ```
-   The `notecolor-<name>` colorlet is load-bearing: `\claude[<name>]` takes
+   The `notecolor-<name>` colorlet is not just decoration: `\claude[<name>]` takes
    its owner styling from it automatically (borders, leader lines, and the
    block pole's owner stripe all use the color unmodified), so a new author
    needs **no Claude-specific setup**. Check that a name doesn't clash with an existing
