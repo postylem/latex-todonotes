@@ -6,22 +6,21 @@ A skill for author–agent collaboration in LaTeX papers, built on
 
 It teaches an AI agent a margin-comment workflow:
 
-- **Respond to author comments in place** — never delete an author's
-  `\sam{...}`-style todonote; append a `\claudeResponse[owner]` (or
-  `\codexResponse[owner]`, …) inside it instead.
-- **Mark the agent's contributions** with owner-tagged macros
-  (`\claude[owner]{...}`, `\Claude[owner]{...}`, `\claudeResponse[owner]`,
+- **Clearly mark the agent's contributions with owner-tagged macros** so you
+  know who to blame / credit (both human and AI). For example, Claude will use macros
+  `\claude[owner]{...}`, `\Claude[owner]{...}`, `\claudeResponse[owner]`,
   `\claudeSuggest[owner]{...}`, `\claudechange[owner]{...}`, and the
-  `ClaudeSuggest` block environment), each in its agent's own color with a
+  `ClaudeSuggest` block environment. Each will render in the agent's own color with a
   per-owner background tint, so multi-author projects can tell whose session
   made an edit.
-- **Enumerate open items** (author notes, agent notes, suggestions, TODOs)
-  after each editing task.
+- **The agent will respond to author comments in place**. Say an author named Alex
+  writes a todonote like `\alex{...}`, and then another author Sam has their agent
+  respond. The agent uses `\claudeResponse[sam]` (or `\codexResponse[sam]`, …).
 
 ## Any agent, several at once
 
 The workflow is written agent-neutrally, and the LaTeX side is parameterized, so
-the same packages serve Claude, Codex, Gemini or anything else — and more than
+the same packages serve Claude, Codex, Gemini or anything else, and more than
 one of them in a single paper. One line per agent:
 
 ```latex
@@ -35,10 +34,10 @@ one of them in a single paper. One line per agent:
 `\newagent{claude}` mints `\claude`, `\Claude`, `\claudeResponse`,
 `\claudeSuggest`, `\claudechange`, `\claudespark` and the `ClaudeSuggest`
 environment; `\newagent{codex}` mints the `\codex` family beside it. Built-in
-presets are `claude` (✻, terracotta), `gemini` (✦, blue), `codex` (✧,
-graphite) and `ai` (✧, neutral gray); any other stem supplies its own name,
-color and mark. An agent can be re-tinted per paper with
-`\newagent{claude}[color=<color>]`.
+presets are `claude`, `gemini`, `codex`, and generic `ai`, each distinguished by
+their own colors and icons (unicode dingbats). You can also specify
+a custom name for a new agent, supplying its name, color and mark. 
+An agent can be re-tinted per paper with `\newagent{claude}[color=<color>]`.
 
 Each label renders as the agent's mark and name in the agent's color on its own
 tint, then `@owner` in the ordinary text color on that author's own note
