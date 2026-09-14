@@ -4,3 +4,12 @@ example*.out
 example*.fls
 example*.fdb_latexmk
 example*.synctex.gz
+test-compat*.aux
+test-compat*.log
+test-compat*.out
+test-compat*.fls
+test-compat*.fdb_latexmk
+test-compat*.synctex.gz
+# test-compat.tex is a build guard, not a document to browse: its source is
+# committed, its PDF is not.
+test-compat.pdf
