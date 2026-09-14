@@ -9,7 +9,7 @@
     {
       "name": "latex-todonotes",
       "source": "./",
-      "description": "Edit LaTeX papers using todonotes for author-Claude collaboration: respond to author margin comments without deleting them, mark Claude's contributions with owner-tagged macros, enumerate open items after each task."
+      "description": "Edit LaTeX papers using todonotes for author-agent collaboration: respond to author margin comments without deleting them, mark the agent's contributions with owner-tagged macros, enumerate open items after each task."
     }
   ]
 }
