@@ -1,0 +1,5 @@
+# The packages under test are the ones in this repo, not any installed copy, so
+# put the parent directory first on TEXINPUTS.  The trailing colon keeps the
+# normal search path after it.  Set here rather than in the Makefile so that a
+# bare `latexmk -pdf example.tex` in this directory works too.
+$ENV{'TEXINPUTS'} = '..:' . ($ENV{'TEXINPUTS'} // '');

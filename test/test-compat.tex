@@ -1,0 +1,48 @@
+% test-compat.tex --- backwards compatibility guard.
+%
+% This file is deliberately written in the PRE-\newagent style: it loads
+% claudenotes.sty directly and uses the owner-tagged \claude family exactly as
+% papers set up before agentnotes.sty existed do.  It must keep building
+% unchanged, so do not modernize it --- that is the whole point of the file.
+%
+%   make            (or: latexmk -pdf test-compat.tex)
+%
+% `make compat-check` proves the guarantee rather than asserting it: it builds
+% this file against the packages as they were before agentnotes.sty existed and
+% compares the two renders pixel for pixel.
+\documentclass{article}
+\usepackage[left=1in,right=2.9in,top=1in,bottom=1in]{geometry}
+\usepackage{mytodonotes}
+\usepackage{claudenotes}
+\setlength{\marginparwidth}{5.4cm}
+
+\colorlet{notecolor-sam}{red!40}
+\newcommand{\sam}[2][]{\note[#1]{sam}{notecolor-sam}{#2}}
+\newcommand{\Sam}[2][]{\sam[inline,#1]{#2}}
+
+\begin{document}
+\section{Old-style Claude macros}
+
+Margin note.\claude[sam]{A margin note.}  Inline note.
+\Claude[sam]{An inline note.}  An author note with a Claude reply
+inside it.\sam{Please check this.
+\claudeResponse[sam] Checked.}
+
+An inline suggestion: \claudeSuggest[sam]{suggested wording}, and replacement
+text: \claudechange[sam]{replacement wording}.
+
+An untagged note.\claude{No owner given.}
+
+\begin{ClaudeSuggest}[sam]
+A block suggestion, owner tagged.
+\end{ClaudeSuggest}
+
+\begin{ClaudeSuggest}
+A block suggestion, untagged.
+\end{ClaudeSuggest}
+
+The three exported colors still resolve:
+\textcolor{ClaudeColor}{ClaudeColor},
+\textcolor{ClaudeTextColor}{ClaudeTextColor},
+\textcolor{ClaudeNoteBG}{ClaudeNoteBG}.
+\end{document}

@@ -1,6 +1,25 @@
-example*.aux
-example*.log
-example*.out
-example*.fls
-example*.fdb_latexmk
-example*.synctex.gz
+# macOS
+.DS_Store
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.xdv
+
+# The example PDFs under test/ are committed on purpose: they are the browsable
+# style gallery, so the packages can be reviewed without a TeX installation.
+# The compatibility guard's PDF is a build product only -- it is compared
+# against its own previous render, never read.  Unanchored, so it is ignored
+# wherever it is built.
+test-compat.pdf
