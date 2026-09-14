@@ -50,8 +50,11 @@ Per-agent state, keyed by stem, deliberately mirroring the `notecolor-<name>`
 convention already used for human authors so that both halves of a label
 resolve the same way:
 
-- `agentcolor@<stem>`, with `agenttext@<stem>` and `agentbg@<stem>` derived
-  by the existing `!80!black` and `!17` formulas
+- `agentcolor-<stem>`, with `agenttext-<stem>` and `agentbg-<stem>` derived
+  by the existing `!80!black` and `!17` formulas. Hyphen, not `@`: these are
+  document-level color names that a paper may redefine to re-tint an agent, so
+  they follow the `notecolor-<name>` spelling authors already use rather than
+  the `@` of the package's internals.
 - `\agent@mark@<stem>` and `\agent@word@<stem>`, via `\@namedef`
 
 #### `\newagent`
@@ -114,10 +117,13 @@ Each preset is three `\@namedef`s (`agent@pname@`, `agent@pcolor@`,
 | `claude` | Claude | `RGB 212,108,77` terracotta (unchanged) | `\ding{91}` ✻ |
 | `gemini` | Gemini | `RGB 66,133,244` blue | `\ding{70}` ✦ |
 | `codex` | Codex | `RGB 64,65,79` graphite | `\ding{71}` ✧ |
-| `ai` | AI | `RGB 110,110,120` neutral gray | `\ding{71}` ✧ |
+| `ai` | AI | `black!55` neutral gray | `\ding{71}` ✧ |
 
 Each base color is used as paint only; the label's text takes `!80!black` and
-its background `!17`, exactly as Claude's does today. The Gemini and Codex
+its background `!17`, exactly as Claude's does today. `ai` is spelled as a
+percentage of black rather than an `RGB` triple **deliberately**: it is the
+natural way to write a neutral gray, and it means a shipped preset exercises
+finding 2, which an all-`RGB` table would leave untested. The Gemini and Codex
 values are deliberate choices in the neighbourhood of those products' hues,
 not asserted brand colors, and carry no more precision than that.
 
@@ -151,9 +157,9 @@ respect:
    key-value signature above rather than
    `\newagent{stem}{Display}{color}{mark}` with optional trailing groups.
 2. **Derived colors must come from the defined name, not the expression.**
-   `\colorlet{agenttext@ai}{black!55!80!black}` fails with ``Undefined color
+   `\colorlet{agenttext-ai}{black!55!80!black}` fails with ``Undefined color
    `80'`` because xcolor's chain syntax needs a color name where `80` sits.
-   Define `agentcolor@<stem>` first, then derive from that single plain name.
+   Define `agentcolor-<stem>` first, then derive from that single plain name.
    The original `claudenotes.sty` already did this correctly; naive
    parameterization reintroduces the bug. `teal!70!black` masks it by
    happening to end in a color name, so a test must include a base expression
@@ -219,11 +225,16 @@ Acceptance criteria:
 
 - `test-compat.tex` builds clean against the shim
 - `example.tex` builds clean with four agents plus one custom
-- the Claude-only sections of `example.pdf` render identically to the currently
-  committed PDF, checked by rasterizing both at the same resolution and
-  diffing the page images, not by eye
-- a base color expression ending in a percentage (`black!55`) is covered by at
-  least one agent in `example.tex`, so finding 2 cannot regress silently
+- `test-compat.pdf` renders **byte-identically** to its pre-refactor build,
+  checked by rasterizing both at 150dpi and comparing the page images, not by
+  eye. This replaces the originally planned "Claude-only sections of
+  `example.pdf` are unchanged" check, which is not achievable: adding agents to
+  `example.tex` reflows its pagination, so a page-image diff of that file would
+  report differences that are entirely expected. `test-compat.tex` is the
+  stronger guard anyway, since it is held fixed by design.
+- a base color expression ending in a percentage is covered by at least one
+  agent, so finding 2 cannot regress silently — by the `ai` preset (`black!55`)
+  and again by the custom `qwen` agent in `example.tex` (`orange!60`)
 
 ## Naming and distribution
 

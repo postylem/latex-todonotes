@@ -1,4 +1,4 @@
-% example.tex --- demonstrates every note style in mytodonotes + claudenotes
+% example.tex --- demonstrates every note style in mytodonotes + agentnotes
 %
 % Build (from the skill directory, so the .sty files are found):
 %   latexmk -pdf example.tex
@@ -10,11 +10,22 @@
   \usepackage{parskip}
 \fi
 \usepackage{mytodonotes}
-\usepackage{claudenotes}
+\usepackage{agentnotes}
 \setlength{\marginparwidth}{5.4cm}
 
-% Per-author note macros: three lines each.  The notecolor-<name> colorlet is
-% load-bearing --- \claude[<name>] and friends derive the owner styling from it.
+% One \newagent line per agent working on the paper.  A stem with a built-in
+% preset needs nothing else; anything unlisted supplies its own name, color and
+% mark.  Several agents coexist without collision, so a paper where each author
+% brings their own assistant works as well as one where everybody shares Claude.
+\newagent{claude}
+\newagent{codex}
+\newagent{gemini}
+\newagent{ai}
+\newagent{qwen}[name=Qwen, color=orange!60, mark=\ding{92}]
+
+% Per-author note macros: three lines each.  Every agent derives its owner
+% styling from the notecolor-<name> colorlet, so defining one is what lets
+% \claude[<name>], \codex[<name>] and the rest pick up that author's color.
 \colorlet{notecolor-alice}{green!20}
 \newcommand{\alice}[2][]{\note[#1]{alice}{notecolor-alice}{#2}}
 \newcommand{\Alice}[2][]{\alice[inline,#1]{#2}}
@@ -27,7 +38,7 @@
 \newcommand{\carol}[2][]{\note[#1]{carol}{notecolor-carol}{#2}}
 \newcommand{\Carol}[2][]{\carol[inline,#1]{#2}}
 
-\title{claudenotes: the whole menagerie\ifdefined\exampleparskip\\(parskip variant)\fi}
+\title{agentnotes: the whole menagerie\ifdefined\exampleparskip\\(parskip variant)\fi}
 \author{}
 \date{}
 
@@ -121,6 +132,39 @@ Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit
 quo minus id quod maxime placeat facere possimus (an untagged block: plain
 \texttt{claude} label, no \texttt{@owner}).
 \end{ClaudeSuggest}
+
+\section{Several agents in one paper}
+
+Carol works with Codex rather than Claude, so her agent's notes carry the Codex
+mark and her own note color, and sit alongside Claude's without
+collision.\codex[carol]{Lorem ipsum dolor sit amet, consectetur adipiscing
+elit, sed do eiusmod tempor incididunt ut labore.}  Sed ut perspiciatis unde
+omnis iste natus error sit voluptatem.\alice{Is this still right after the
+revision?
+\codexResponse[carol] Sed do eiusmod tempor incididunt ut labore et dolore
+magna aliqua.
+\claudeResponse[alice] Ut enim ad minim veniam, quis nostrud exercitation
+ullamco laboris.}
+
+\Codex[carol]{Lorem ipsum dolor sit amet, consectetur adipiscing elit.}
+An inline suggestion from Carol's agent: \codexSuggest[carol]{nisi ut aliquid
+ex ea commodi consequatur}, and one from Bob's: \geminiSuggest[bob]{quis
+nostrud exercitation ullamco laboris}.
+
+\begin{CodexSuggest}[carol]
+A block suggestion from Carol's Codex session: the pole carries her note color
+as its owner stripe, exactly as Claude's blocks carry theirs.
+\end{CodexSuggest}
+
+\begin{ClaudeSuggest}[alice]
+And immediately after it, a block from Alice's Claude session --- two adjacent
+blocks whose poles differ in both the agent tint and the owner stripe.
+\end{ClaudeSuggest}
+
+An agent with no owner and no preset: \ai{Lorem ipsum dolor sit amet,
+consectetur adipiscing elit.}  And one declared with the custom form, whose
+base color is written as a percentage.\qwen[bob]{Lorem ipsum dolor sit amet,
+consectetur adipiscing elit.}
 
 \section{Long inline notes break across pages}
 
