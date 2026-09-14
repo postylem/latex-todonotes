@@ -6,30 +6,34 @@
 % unchanged, so do not modernize it --- that is the whole point of the file.
 %
 %   make            (or: latexmk -pdf test-compat.tex)
+%
+% `make compat-check` proves the guarantee rather than asserting it: it builds
+% this file against the packages as they were before agentnotes.sty existed and
+% compares the two renders pixel for pixel.
 \documentclass{article}
 \usepackage[left=1in,right=2.9in,top=1in,bottom=1in]{geometry}
 \usepackage{mytodonotes}
 \usepackage{claudenotes}
 \setlength{\marginparwidth}{5.4cm}
 
-\colorlet{notecolor-jac}{red!40}
-\newcommand{\jac}[2][]{\note[#1]{jac}{notecolor-jac}{#2}}
-\newcommand{\Jac}[2][]{\jac[inline,#1]{#2}}
+\colorlet{notecolor-sam}{red!40}
+\newcommand{\sam}[2][]{\note[#1]{sam}{notecolor-sam}{#2}}
+\newcommand{\Sam}[2][]{\sam[inline,#1]{#2}}
 
 \begin{document}
 \section{Old-style Claude macros}
 
-Margin note.\claude[jac]{A margin note.}  Inline note.
-\Claude[jac]{An inline note.}  An author note with a Claude reply
-inside it.\jac{Please check this.
-\claudeResponse[jac] Checked.}
+Margin note.\claude[sam]{A margin note.}  Inline note.
+\Claude[sam]{An inline note.}  An author note with a Claude reply
+inside it.\sam{Please check this.
+\claudeResponse[sam] Checked.}
 
-An inline suggestion: \claudeSuggest[jac]{suggested wording}, and replacement
-text: \claudechange[jac]{replacement wording}.
+An inline suggestion: \claudeSuggest[sam]{suggested wording}, and replacement
+text: \claudechange[sam]{replacement wording}.
 
 An untagged note.\claude{No owner given.}
 
-\begin{ClaudeSuggest}[jac]
+\begin{ClaudeSuggest}[sam]
 A block suggestion, owner tagged.
 \end{ClaudeSuggest}
 
