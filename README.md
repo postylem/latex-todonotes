@@ -61,20 +61,27 @@ text and are usually too pale to read against one.
 - `WORKFLOW.md` — the agent-neutral workflow, and the authoritative one
 - `SKILL.md` / `AGENTS.md` — thin per-platform entry points that say which agent
   you are and send you to `WORKFLOW.md`
+- `test/` — the example gallery and the backwards-compatibility guard, with a
+  `Makefile` that rebuilds both
+- `docs/` — design notes
 
 Copy `mytodonotes.sty` and `agentnotes.sty` into the paper directory and commit
 them, so collaborators who clone the repo can build it.
 
-`example.tex` exercises every note style across five agents with lorem-ipsum
-content — the built PDFs are committed for browsing without building:
-[example.pdf](example.pdf) (indented paragraphs) and
-[example-parskip.pdf](example-parskip.pdf) (under `\usepackage{parskip}`).
-Rebuild them in the skill directory with `latexmk -pdf example.tex` (see the
-header comment for the parskip variant) after any change to the packages.
+`test/example.tex` exercises every note style across five agents with
+lorem-ipsum content — the built PDFs are committed for browsing without
+building: [example.pdf](test/example.pdf) (indented paragraphs) and
+[example-parskip.pdf](test/example-parskip.pdf) (under `\usepackage{parskip}`).
 
-`test-compat.tex` is a build guard, deliberately written in the pre-`\newagent`
-style: it must keep building, and its rendering must not change, so that papers
-already set up with this skill keep working. Don't modernize it.
+`test/test-compat.tex` is a build guard, deliberately written in the
+pre-`\newagent` style: it must keep building, and its rendering must not change,
+so that papers already set up with this skill keep working. Don't modernize it.
+
+After any change to the packages, rebuild both:
+
+```bash
+cd test && make
+```
 
 See [WORKFLOW.md](WORKFLOW.md) for the full workflow, including the three-line
 per-author macro pattern, how to set up a new paper, and how to migrate one that

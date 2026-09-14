@@ -1,9 +1,10 @@
 % example.tex --- demonstrates every note style in mytodonotes + agentnotes
 %
-% Build (from the skill directory, so the .sty files are found):
+% Build everything in this directory with `make`, or one at a time (latexmkrc
+% here puts the repo's own .sty files first on TEXINPUTS):
 %   latexmk -pdf example.tex
 % Parskip variant (paragraphs separated by skips instead of indents):
-%   pdflatex -jobname=example-parskip "\def\exampleparskip{1}\input{example}"
+%   latexmk -pdf -jobname=example-parskip -usepretex='\def\exampleparskip{1}' example.tex
 \documentclass{article}
 \usepackage[left=1in,right=2.9in,top=1in,bottom=1in]{geometry}
 \ifdefined\exampleparskip

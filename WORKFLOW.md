@@ -150,13 +150,13 @@ asked to migrate.
   color name, such as `teal!70!black`, masks the problem.
 - **Build before reporting.** These macros are easy to get subtly wrong (colors
   that vanish across a page break, notes that swallow floats), and a broken
-  preamble breaks the collaborator's build too. `example.tex` in this skill's
-  directory exercises every note style across several agents — rebuild it after
-  changing the packages, and refresh the committed
-  `example.pdf`/`example-parskip.pdf` (they are in the repo so humans can browse
-  the styles without building). `test-compat.tex` guards backwards
-  compatibility for papers that predate `agentnotes.sty`: it must keep building,
-  and its rendering must not change, so do not modernize it.
+  preamble breaks the collaborator's build too. Run `make` in this skill's
+  `test/` directory after changing the packages, and commit the refreshed
+  `test/example.pdf` and `test/example-parskip.pdf` (they are in the repo so
+  humans can browse the styles without building). `test/example.tex` exercises
+  every note style across several agents; `test/test-compat.tex` guards
+  backwards compatibility for papers that predate `agentnotes.sty` — it must
+  keep building, and its rendering must not change, so do not modernize it.
 
 ## After completing each editing task
 

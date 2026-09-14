@@ -216,6 +216,10 @@ The custom agent must be declared with a base color **ending in a percentage**
 four presets use plain `RGB` values and so cannot exercise finding 2. A color
 expression ending in a color name, such as `teal!70!black`, masks that bug.
 
+The build files live in `test/` rather than the repo root, with a `latexmkrc`
+that puts the repo's own `.sty` files first on `TEXINPUTS` and a `Makefile`
+covering all three builds, so the root holds only the packages and the prose.
+
 A new `test-compat.tex` holds the *old* preamble verbatim —
 `\usepackage{claudenotes}` with the pre-`\newagent` author macros — so
 backwards compatibility is something that builds rather than something
