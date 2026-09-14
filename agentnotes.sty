@@ -14,13 +14,13 @@
 %%   \newagent{qwen}[name=Qwen, color=orange!60, mark=\ding{92}]   % custom
 %%
 %% For stem `claude' with display name `Claude' that gives:
-%%   \claude[jac]{...}        margin note, labeled "Claude@jac"
-%%   \Claude[jac]{...}        inline variant
-%%   \claudeResponse[jac]     reply inside another author's note
-%%   \claudeSuggest[jac]{...} small inline text suggestion, in the agent's color
-%%   \claudechange[jac]{...}  agent-authored replacement text (owner arg is
+%%   \claude[sam]{...}        margin note, labeled "Claude@sam"
+%%   \Claude[sam]{...}        inline variant
+%%   \claudeResponse[sam]     reply inside another author's note
+%%   \claudeSuggest[sam]{...} small inline text suggestion, in the agent's color
+%%   \claudechange[sam]{...}  agent-authored replacement text (owner arg is
 %%                            provenance only)
-%%   \begin{ClaudeSuggest}[jac]...\end{ClaudeSuggest}  block suggestion
+%%   \begin{ClaudeSuggest}[sam]...\end{ClaudeSuggest}  block suggestion
 %%   \claudespark             the agent's mark on its own
 %%
 %% NAMING RULE: the lowercase forms are built from the <stem>, the capitalized
@@ -42,9 +42,9 @@
 %% Authors set up nothing agent-specific: \claude[<name>] finds the color
 %% `notecolor-<name>' that the author defined next to their own note macros in
 %% the document preamble, i.e. the three-line pattern
-%%   \colorlet{notecolor-jac}{red!40}
-%%   \newcommand{\jac}[2][]{\note[#1]{jac}{notecolor-jac}{#2}}
-%%   \newcommand{\Jac}[2][]{\jac[inline,#1]{#2}}
+%%   \colorlet{notecolor-sam}{red!40}
+%%   \newcommand{\sam}[2][]{\note[#1]{sam}{notecolor-sam}{#2}}
+%%   \newcommand{\Sam}[2][]{\sam[inline,#1]{#2}}
 %% An owner without a notecolor (or an omitted owner) falls back to the agent's
 %% own color, so an untabulated owner never breaks the build.
 %%
@@ -316,7 +316,7 @@
           rectangle
           ([xshift=\agent@chippad,
             yshift=\dimexpr\agent@chiprise+\agent@ownerbarwd\relax]%
-            agentflag.north east);};},
+            agentflag.north east);}},
     overlay middle and last={\agent@pole{#1}{##1}},
     % colupper, not \color in before upper: the latter is applied once and is
     % lost where a breakable box continues onto the next page.
