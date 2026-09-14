@@ -7,7 +7,7 @@ A skill for author–agent collaboration in LaTeX papers, built on
 It teaches an AI agent a margin-comment workflow:
 
 - **Respond to author comments in place** — never delete an author's
-  `\jac{...}`-style todonote; append a `\claudeResponse[owner]` (or
+  `\sam{...}`-style todonote; append a `\claudeResponse[owner]` (or
   `\codexResponse[owner]`, …) inside it instead.
 - **Mark the agent's contributions** with owner-tagged macros
   (`\claude[owner]{...}`, `\Claude[owner]{...}`, `\claudeResponse[owner]`,
@@ -42,7 +42,7 @@ color and mark. An agent can be re-tinted per paper with
 
 Each label renders as the agent's mark and name in the agent's color on its own
 tint, then `@owner` in the ordinary text color on that author's own note
-color — so `✻Claude@jac` and `✧Codex@sam` are distinguishable at a glance, and
+color — so `✻Claude@sam` and `✧Codex@lee` are distinguishable at a glance, and
 the owner half looks just like their name does in their own notes. The color is
 looked up from the `notecolor-<owner>` colorlet that sits beside each author's
 note macro, so adding an author needs no agent-specific setup. Author colors are

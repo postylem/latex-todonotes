@@ -1,8 +1,8 @@
 # LaTeX todonotes editing workflow
 
 The workflow for author–agent collaboration in LaTeX papers, shared by every
-agent. Your platform's entry point (`SKILL.md` for Claude Code, `AGENTS.md`
-otherwise) tells you which agent you are; everything else is here.
+agent. `SKILL.md` — which Claude Code and Codex both load as a skill — tells you
+which agent you are; everything else is here.
 
 ## Who you are
 
@@ -18,17 +18,18 @@ you are `ai`, displayed as `AI`.
 
 Built-in stems are `claude` (Claude), `gemini` (Gemini), `codex` (Codex) and
 `ai` (AI). So a Claude session reads `<agent>` as `claude` and `<Agent>` as
-`Claude`, and writes `\claude[jac]{...}` and `ClaudeSuggest`. A Gemini session
-writes `\gemini[jac]{...}` and `GeminiSuggest`. Substitute throughout.
+`Claude`, and writes `\claude[sam]{...}` and `ClaudeSuggest`. A Gemini session
+writes `\gemini[sam]{...}` and `GeminiSuggest`. Substitute throughout.
 
 Several agents can work in one paper at once, and their notes do not collide.
 A note's label names both the agent and the human whose session made it, so
-`✻Claude@jac` and `✧Codex@sam` are distinguishable at a glance.
+`✻Claude@sam` and `✧Codex@lee` are distinguishable at a glance — as are
+`✻Claude@sam` and `✧Codex@sam`, the same person's two agents.
 
 ## Responding to author comments
 
 **CRITICAL: NEVER DELETE author todonotes.** The default author-macro style is
-the bare lowercase name — `\jac{...}` (margin) and `\Jac{...}` (inline); older
+the bare lowercase name — `\sam{...}` (margin) and `\Sam{...}` (inline); older
 projects use `\noteAuthor{}`/`\NoteAuthor{}`. Whatever the style, if the name
 is a person rather than an agent, the note is theirs: they will remove their
 own comments after review.
@@ -42,14 +43,14 @@ When addressing a comment:
 Example — if the author writes:
 
 ```latex
-Note 1 = 2.\jac{Wrong! Fix RHS of equation.}
+Note 1 = 2.\sam{Wrong! Fix RHS of equation.}
 ```
 
 Correct response:
 
 ```latex
-Note 1 = 1.\jac{Wrong! Fix RHS of equation.
-\claudeResponse[jac] Fixed. Now the equation is correct.}
+Note 1 = 1.\sam{Wrong! Fix RHS of equation.
+\claudeResponse[sam] Fixed. Now the equation is correct.}
 ```
 
 **WRONG** (deleting the comment):
@@ -65,7 +66,7 @@ each is part of the record.
 ## Marking your contributions
 
 Your notes and edits carry an *owner* tag naming whose session made them — the
-human running the session, lowercase (e.g. `jac`). Determine the owner from
+human running the session, lowercase (e.g. `sam`). Determine the owner from
 context (the repo's instruction file, git user name) or ask; do not guess.
 
 - **Margin notes**: `\<agent>[<owner>]{note text}` — labeled `<Agent>@<owner>`
@@ -161,7 +162,7 @@ asked to migrate.
 ## After completing each editing task
 
 1. **Enumerate open items**: Scan the paper for author notes
-   (`\jac{}`/`\Jac{}`-style lowercase-name macros, or legacy
+   (`\sam{}`/`\Sam{}`-style lowercase-name macros, or legacy
    `\noteAuthor{}`/`\NoteAuthor{}`), agent notes from *any* agent in the paper
    (`\claude[...]{}`, `\codex[...]{}`, `\gemini[...]{}`, `\ai[...]{}`, their
    capitalized inline forms, legacy `\noteClaude{}`),
@@ -199,9 +200,9 @@ When asked to set up the todonotes workflow in a new LaTeX project:
 3. Define per-author note macros in the document preamble (the paper-by-paper
    part), in the bare-name style, **three lines per author**:
    ```latex
-   \colorlet{notecolor-jac}{red!40}
-   \newcommand{\jac}[2][]{\note[#1]{jac}{notecolor-jac}{#2}}
-   \newcommand{\Jac}[2][]{\jac[inline,#1]{#2}}
+   \colorlet{notecolor-sam}{red!40}
+   \newcommand{\sam}[2][]{\note[#1]{sam}{notecolor-sam}{#2}}
+   \newcommand{\Sam}[2][]{\sam[inline,#1]{#2}}
    ```
    The `notecolor-<name>` colorlet is not just decoration: every agent takes
    its owner styling from it automatically (borders, leader lines, and the block

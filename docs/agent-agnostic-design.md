@@ -7,7 +7,7 @@ Design doc, 2026-09-14.
 Let the skill work for any agentic AI system, not just Claude Code, by
 factoring the agent's identity out of the LaTeX packages and the workflow
 prose. A paper must be able to carry notes from several agents at once
-(`\claude[jac]{...}` beside `\gemini[jac]{...}`), and every paper already set
+(`\claude[sam]{...}` beside `\gemini[sam]{...}`), and every paper already set
 up with this skill must keep building untouched.
 
 ## Decisions taken
@@ -17,8 +17,10 @@ up with this skill must keep building untouched.
    three-line-per-author pattern the package already uses for humans. Not a
    single package parameterized by load-time option, which could not express
    two agents in one file.
-2. **One agent-neutral workflow body**, with thin per-platform entry points.
-   Claude Code keeps `SKILL.md`; everyone else reads `AGENTS.md`.
+2. **One agent-neutral workflow body**, with a thin entry point in front of it.
+   Originally: Claude Code keeps a Claude-specific `SKILL.md` and everyone else
+   reads `AGENTS.md`. **Corrected during implementation** — see "Codex also
+   loads SKILL.md" below.
 3. **Four presets: `claude`, `gemini`, `codex`, `ai`.** The OpenAI stem is
    `codex` (the agentic tool, the closer parallel to `claude` meaning Claude
    Code here) and takes the generic mark, because no ZapfDingbats glyph
@@ -104,7 +106,7 @@ last fallback is required, not cosmetic — see finding 3 below.
 Today `\@namedef{claude@who@claude}{claude}` suppresses the `@owner` half of
 the label when the owner is the agent itself. This generalizes to a single
 comparison — owner equals stem implies no suffix — so no table is needed.
-`\claude{...}` renders `✻Claude`; `\claude[jac]{...}` renders `✻Claude@jac`.
+`\claude{...}` renders `✻Claude`; `\claude[sam]{...}` renders `✻Claude@sam`.
 
 #### Preset table
 
@@ -179,6 +181,24 @@ environment, whose tcolorbox overlay closes over the owner argument; the probe
 covered name generation but not the full overlay with the pole and L-cap.
 
 ## Instruction layer
+
+### Codex also loads SKILL.md
+
+The original plan gave Claude Code a `SKILL.md` opening "You are Claude" and
+routed every other agent through `AGENTS.md`. That was based on a wrong premise.
+Codex CLI (checked against 0.154.0) has its own skills mechanism at
+`~/.codex/skills/<name>/SKILL.md`, using the same filename and the same
+`name`/`description` frontmatter as Claude Code; `AGENTS.md` is its *repo-level*
+instruction file, not its skill entry point. Installing this repo as a Codex
+skill would therefore have handed Codex a file telling it that it was Claude,
+and it would have written `\claude[...]` notes — mislabeling its own work and
+defeating the entire change.
+
+So `SKILL.md` carries the identify-yourself table and is agent-neutral, serving
+both skill loaders. `AGENTS.md` shrinks to a pointer at `SKILL.md` and
+`WORKFLOW.md`, for an agent given this clone but no skill mechanism. The
+per-paper `AGENTS.md` that setup writes is unaffected — that is repo-level
+instruction, which is what `AGENTS.md` is actually for.
 
 - **`WORKFLOW.md`** — the entire workflow, agent-neutral, written against the
   `\<agent>` / `\<Agent>` / `\<agent>Response` / `\<agent>Suggest` /
