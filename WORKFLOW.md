@@ -75,8 +75,12 @@ context (the repo's instruction file, git user name) or ask; do not guess.
   `\response` rule and spacing, headed `<Agent>@<owner>`
 - **Inline suggestions**: `\<agent>Suggest[<owner>]{suggested text}` for small
   inline changes proposed but not applied
-- **Agent-authored replacement text**: `\<agent>change[<owner>]{...}` — renders
-  in your color; the owner argument is provenance
+- **Agent-authored replacement text**: `\<agent>change[<owner>]{...}` — text you
+  wrote that is *already part of the document*. It takes your color inline and
+  flags the margin with `<Agent>@<owner> change`, marking that line as holding
+  agent prose nobody has reviewed. One flag per paragraph per agent-and-owner
+  pair, and deliberately **no inline label**, so it stays usable inside math,
+  where a label would be wider than the symbol it marks
 - **New block-level text**: wrap in
   `\begin{<Agent>Suggest}[<owner>]...\end{<Agent>Suggest}` (renders like
   regular document text, just in your color: full text width, with a changebar
@@ -114,6 +118,21 @@ multi-author projects can tell whose session made an edit.
 introduce the owner-tagged macros only when setting up new projects or when
 asked to migrate.
 
+### `\<agent>Suggest` or `\<agent>change`?
+
+They answer different questions, and picking the wrong one misleads the author:
+
+| | meaning | author must act? | open item? |
+|---|---|---|---|
+| `\<agent>Suggest` | a proposal, **not applied** — wording you are offering | yes, accept or reject | **yes** |
+| `\<agent>change` | text you **already wrote** into the document | no, review at leisure | no |
+
+So a suggestion is a question to the author and reads as an aside, with a label
+and a colon. A change *is* the prose, so it stays in the text flow and is
+flagged in the margin instead. If you are proposing wording, use `Suggest`; if
+you have edited the document, use `change`. Marking an applied edit as a
+suggestion leaves the author hunting for a decision that has already been made.
+
 ## Mechanical notes
 
 - **`\<agent>{}` cannot appear inside an `<Agent>Suggest` box.** It is a
@@ -149,6 +168,16 @@ asked to migrate.
   may itself contain `!` — `black!55!80!black` is a malformed xcolor chain and
   fails with ``Undefined color `80'``. An expression that happens to end in a
   color name, such as `teal!70!black`, masks the problem.
+- **Margin flags need more than one pass.** `\<agent>change`'s margin flag is a
+  `\marginnote`, which routes its position through the `.aux` file and renders
+  **nothing at all** on a first pass. Build with `latexmk`, or run the engine
+  twice; a single run makes the flags look broken when they are merely not
+  placed yet.
+- **`\marginpar` cannot be used from math mode**, which is why the flag is a
+  `\marginnote`. `\marginpar` — and so todonotes' `\todo`, and so
+  `\<agent>{}` — fails there with `! LaTeX Error: Not in outer par mode.`
+  `\marginnote` is also non-floating, so unlike `\<agent>{}` it survives
+  inside a suggestion block.
 - **Build before reporting.** These macros are easy to get subtly wrong (colors
   that vanish across a page break, notes that swallow floats), and a broken
   preamble breaks the collaborator's build too. Run `make` in this skill's

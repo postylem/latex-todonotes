@@ -61,6 +61,7 @@
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
 \RequirePackage{pifont}   % \ding{...}: the agents' marks
+\RequirePackage{marginnote}  % \marginnote: a margin flag that works in math mode
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Label geometry.  None of this depends on which agent is speaking.
@@ -126,6 +127,50 @@
   \textcolor{agenttext-#1}{\agent@sparkword{#1}}{\normalcolor\agent@owner}%
   \endgroup}
 
+% \<agent>change is APPLIED replacement text: it flows in the paragraph as
+% ordinary prose, unlike \<agent>Suggest, which is a proposal and so can afford
+% a full inline label.  It used to render as nothing but colored text, which
+% made it the one macro with no label at all -- invisible wherever the agent's
+% color sat close to the body text's black, and its owner argument was accepted
+% but never shown to the reader.
+%
+% It now colors the text AND flags the margin, so the marker's job is to say
+% "this line holds agent text a human has not signed off on" while leaving the
+% prose itself undisturbed.  An inline chip was tried first and is wrong here:
+% these replacements are frequently a single symbol inside math
+% (\<agent>change{\mathcal E}), where any inline label is several times wider
+% than the thing it labels, and two in one formula make it unreadable.
+%
+% \marginnote, not \marginpar (which todonotes uses): \marginpar fails outright
+% from math mode with "Not in outer par mode", and these changes live in math.
+% \marginnote also survives inside a tcolorbox, being non-floating, so it does
+% not hit the "Float(s) lost" trap that keeps \<agent>{} out of a suggestion
+% block.  The cost is that marginnote routes positions through the .aux and
+% renders NOTHING on a first pass -- build with latexmk, or run twice.
+%
+% One marker per paragraph per agent@owner.  Whether two changes share an output
+% LINE is unknowable when the macro runs, since TeX has not broken the paragraph
+% into lines yet; the paragraph is the finest key actually available. So the
+% counter below is bumped once per paragraph and folded into the key, which
+% makes the flag idempotent without any list to clear.
+\newcount\agent@parno
+\AddToHook{para/begin}{\global\advance\agent@parno by 1\relax}
+\newcommand{\agent@changemark}[2]{% #1 = stem, #2 = owner
+  {\raggedright\scriptsize
+   {\bfseries\agent@setaccent{#1}{#2}\agent@who{#1}{#2}}%
+   \ \textcolor{agenttext-#1}{change}\par}}
+\newcommand{\agent@markonce}[2]{% #1 = stem, #2 = owner
+  \ifcsname agent@seen@\the\agent@parno @#1@#2\endcsname\else
+    \expandafter\gdef\csname agent@seen@\the\agent@parno @#1@#2\endcsname{}%
+    \marginnote{\agent@changemark{#1}{#2}}%
+  \fi}
+% No \ifmmode branch is needed, and that is a feature: both \marginnote and
+% \color work in math mode, so there is no conditional left open while a body
+% that may contain \par is typeset.
+\newcommand{\agent@change}[3]{% #1 = stem, #2 = owner, #3 = body
+  \agent@markonce{#1}{#2}%
+  {\color{agenttext-#1}#3}}
+
 \newcommand{\agent@blocklabel}[2]{% #1 = stem, #2 = owner
   {\scriptsize\bfseries\agent@setaccent{#1}{#2}\strut\agent@who{#1}{#2}}}
 
@@ -173,11 +218,11 @@
 
 \definecolor{AgentTerracotta}{RGB}{212,108,77}  % claude
 \definecolor{AgentBlue}{RGB}{66,133,244}        % gemini
-\definecolor{AgentGraphite}{RGB}{64,65,79}      % codex
+\definecolor{AgentTeal}{RGB}{16,163,127}       % codex
 
 \agent@defpreset{claude}{Claude}{AgentTerracotta}{\ding{91}}  % the starburst
 \agent@defpreset{gemini}{Gemini}{AgentBlue}{\ding{70}}        % filled 4-point star
-\agent@defpreset{codex}{Codex}{AgentGraphite}{\ding{71}}      % hollow 4-point star
+\agent@defpreset{codex}{Codex}{AgentTeal}{\ding{71}}          % hollow 4-point star
 \agent@defpreset{ai}{AI}{black!55}{\ding{71}}                 % generic
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -276,9 +321,9 @@
   \expandafter\NewDocumentCommand\csname#1Suggest\endcsname{O{#1} +m}{%
     {\agent@setaccent{#1}{##1}\color{agenttext-#1}%
      \textbf{\agent@who{#1}{##1}}: ##2}}%
-  % Replacement text; the owner argument is provenance only.
+  % Applied replacement text: chip, colored text, and an extent rule.
   \expandafter\NewDocumentCommand\csname#1change\endcsname{O{#1} +m}{%
-    \textcolor{agenttext-#1}{##2}}%
+    \agent@change{#1}{##1}{##2}}%
   \agent@defblock{#1}}
 
 % Block suggestions: gutter changebar and agent-colored text, headed by a small

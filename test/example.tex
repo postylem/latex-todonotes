@@ -23,6 +23,10 @@
 \newagent{gemini}
 \newagent{ai}
 \newagent{qwen}[name=Qwen, color=orange!60, mark=\ding{92}]
+% A deliberately dark base, to exercise the branch that does NOT darken:
+% every built-in preset is bright enough to be darkened, so without this
+% the luminance floor in agentnotes.sty would go untested.
+\newagent{slate}[name=Slate, color=blue!22!black, mark=\ding{73}]
 
 % Per-author note macros: three lines each.  Every agent derives its owner
 % styling from the notecolor-<name> colorlet, so defining one is what lets
@@ -166,6 +170,31 @@ An agent with no owner and no preset: \ai{Lorem ipsum dolor sit amet,
 consectetur adipiscing elit.}  And one declared with the custom form, whose
 base color is written as a percentage.\qwen[bob]{Lorem ipsum dolor sit amet,
 consectetur adipiscing elit.}
+
+\section{Applied change versus proposed suggestion}
+
+The two inline macros are deliberately different animals.  A suggestion is a
+proposal the author must accept or reject, so it reads as an aside:
+\codexSuggest[carol]{nisi ut aliquid ex ea commodi consequatur}.  An applied
+change is already part of the document, so it disturbs the prose as little as
+possible --- the text takes the agent's color and the margin gets a flag saying
+this line holds agent text nobody has signed off
+on:\ \codexchange[carol]{Quis autem vel eum iure reprehenderit qui in ea
+voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem
+eum fugiat quo voluptas nulla pariatur}.  Ordinary prose resumes here.
+
+A second change by the same agent and owner in this same paragraph adds no
+second flag: \codexchange[carol]{ut enim ad minima veniam}.  A change by a
+different owner does get its own, since that is a different pair:
+\codexchange[alice]{quis nostrum exercitationem ullam corporis}.
+
+Inside math there is no inline label at all, which is the point --- a chip would
+dwarf a one-symbol replacement, and two would make the formula unreadable:
+\[ \kappa : \Omega \times \codexchange[carol]{\mathcal{E}}
+   \to \codexchange[carol]{[0,\infty]} \]
+
+A dark custom agent is not darkened further, so it stays legible against the
+body text:\ \slatechange[bob]{sed quia consequuntur magni dolores eos}.
 
 \section{Long inline notes break across pages}
 
