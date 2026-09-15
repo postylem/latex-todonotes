@@ -192,6 +192,32 @@
 \NewExpandableDocumentCommand{\agent@titlecasefirst}{m}{\text_titlecase_first:n{#1}}
 \ExplSyntaxOff
 
+% agenttext-<stem> is the base color made fit to use as TEXT, and that pulls in
+% two directions.  A light, saturated hue (Claude's terracotta) needs DARKENING
+% to read comfortably at \scriptsize.  A base that is ALREADY dark must not be
+% darkened at all: \<agent>change is the one macro with no label chip, so its
+% color is the only thing distinguishing it from the surrounding prose, and
+% base!80!black collapses a dark neutral toward the black of the body text until
+% the two are indistinguishable.  (Observed with the graphite Codex preset:
+% RGB 64,65,79 became RGB 51,52,63, and \codexchange text read as ordinary body
+% text in a real paper.)
+%
+% So darken only a base bright enough to afford it.  The threshold is on
+% perceptual luminance, not on any single channel, since it is brightness rather
+% than hue that decides whether there is headroom to darken.  Every preset but
+% Codex sits above it, so this changes nothing that was already legible.
+\newcommand{\agent@lumfloor}{0.4}
+\def\agent@lumfrom#1,#2,#3\relax{\fpeval{0.299*(#1)+0.587*(#2)+0.114*(#3)}}
+\newcommand{\agent@mktextcolor}[1]{% #1 = stem
+  \extractcolorspecs{agentcolor-#1}{\agent@cmodel}{\agent@cspec}%
+  \convertcolorspec{\agent@cmodel}{\agent@cspec}{rgb}\agent@crgb
+  \edef\agent@lum{\expandafter\agent@lumfrom\agent@crgb\relax}%
+  \ifdim\agent@lum pt<\agent@lumfloor pt
+    \colorlet{agenttext-#1}{agentcolor-#1}%
+  \else
+    \colorlet{agenttext-#1}{agentcolor-#1!80!black}%
+  \fi}
+
 \newcommand{\agent@clash}[2]{% #1 = control sequence name, #2 = what it would be
   \PackageError{agentnotes}{%
     \string\newagent: \string\\#1\space is already defined,\MessageBreak
@@ -227,7 +253,7 @@
   % (An expression that happens to END in a color name, like teal!70!black,
   % masks this, so do not conclude from one working example that it is fine.)
   \edef\agent@tmp{\noexpand\colorlet{agentcolor-#1}{\agent@col}}\agent@tmp
-  \colorlet{agenttext-#1}{agentcolor-#1!80!black}%
+  \agent@mktextcolor{#1}%
   \colorlet{agentbg-#1}{agentcolor-#1!17}%
   \expandafter\let\csname agent@mark@#1\endcsname\agent@mark
   \expandafter\edef\csname agent@word@#1\endcsname{\agent@disp}%
