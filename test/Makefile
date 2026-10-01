@@ -7,7 +7,7 @@
 # directory works too, and picks up the repo's .sty files rather than any
 # installed copy.
 
-PACKAGES := ../mytodonotes.sty ../agentnotes.sty ../claudenotes.sty
+PACKAGES := ../todofloats.sty ../mytodonotes.sty ../agentnotes.sty ../claudenotes.sty
 
 all: example.pdf example-parskip.pdf test-compat.pdf
 
@@ -60,8 +60,20 @@ compat-bless: test-compat.pdf
 	@pdftoppm -r 150 -png -singlefile test-compat.pdf $(basename $(GOLDEN))
 	@echo "blessed $(GOLDEN) -- review it in the commit"
 
+# The engine under the packages (todofloats.sty): notes inside floats, notes
+# cut across columns and pages, the review layout.  Compiles two stress
+# documents and checks the logs, the layout (from the aux files) and the text.
+engine-check: $(PACKAGES)
+	cd todofloats && bash check.sh
+
+# tools/open_items.py against the example: the items it finds, with the numbers
+# the notes have in the PDF.
+open-items: example.pdf
+	python3 ../tools/open_items.py example.tex
+
 clean:
 	latexmk -c example.tex test-compat.tex
 	latexmk -c -jobname=example-parskip example.tex
+	rm -rf todofloats/out
 
-.PHONY: all clean compat-check compat-build compat-render compat-bless
+.PHONY: all clean compat-check compat-build compat-render compat-bless engine-check open-items

@@ -23,3 +23,6 @@
 # against its own previous render, never read.  Unanchored, so it is ignored
 # wherever it is built.
 test-compat.pdf
+
+# Build directory of the engine tests
+test/todofloats/out/

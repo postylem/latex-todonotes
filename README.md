@@ -16,6 +16,32 @@ It teaches an AI agent a margin-comment workflow:
 - **The agent will respond to author comments in place**. Say an author named Alex
   writes a todonote like `\alex{...}`, and then another author Sam has their agent
   respond. The agent uses `\claudeResponse[sam]` (or `\codexResponse[sam]`, …).
+- **Proposals and applied edits look different.** `\claudeSuggest[sam]{...}` is
+  wording the agent offers without touching your sentence; `\claudechange[sam]{...}`
+  is text it has already written in. Only the first needs a decision from you.
+- **An open-items list after every task**: the notes, with who spoke last, and
+  the proposals awaiting a decision. `tools/open_items.py` prints it from the
+  source, with the number each note has in the PDF.
+
+## Notes that are numbered, break across pages, and work everywhere
+
+`mytodonotes.sty` draws its notes with `todofloats.sty`, not with todonotes'
+own unbreakable boxes:
+
+- Margin notes work inside floats, minipages, table cells and algorithms (no
+  `Float(s) lost`), never overlap, and a page whose margin is full continues its
+  notes in the margin of the next page. Inline notes break across columns and
+  pages like text.
+- Every note opens with a tag: its author, on the saturated hue of the note
+  color, and its number. Put `\label{note:<name>}` in the text of a note, and
+  `\cref{note:<name>}` (or `\ref`) prints the same tag, linked to the note.
+- Authors come from a list, `\usepackage[authors={sam, lee=teal!20}]{mytodonotes}`
+  or `\noteauthors{...}`: each gets `\sam`, `\Sam` and `notecolor-sam`. An
+  author without a color gets one derived from the name, the same in every
+  paper, kept away from the hues already in use.
+- `grow` is a review layout: the paper becomes 80mm wider on each side and the
+  notes get the space, while the text block, and so every line and page break,
+  stays as it is. `disable` turns the notes and the growing off.
 
 ## Any agent, several at once
 
@@ -50,8 +76,14 @@ text and are usually too pale to read against one.
 
 ## What's in here
 
-- `mytodonotes.sty` — todonotes configuration, the generic `\note` macro, and
-  `\response`
+- `mytodonotes.sty` — the generic `\note` macro, the numbered tags, authors
+  from a list, and `\response`
+- `todofloats.sty` — the engine under it: notes that break across pages and
+  survive inside floats, the review layout (`grow`). Usable on its own in place
+  of todonotes.
+- `tools/open_items.py` — the open-items list of a paper; `tools/setup.sh` —
+  copies the packages into a paper
+- `templates/` — the preamble block and the `AGENTS.md` a new paper starts from
 - `agentnotes.sty` — `\newagent` and the owner-tagged macro family it mints
   (loads on top of `mytodonotes.sty`)
 - `claudenotes.sty` — a compatibility shim for papers that predate
@@ -61,11 +93,13 @@ text and are usually too pale to read against one.
 - `SKILL.md` / `AGENTS.md` — thin per-platform entry points that say which agent
   you are and send you to `WORKFLOW.md`
 - `test/` — the example gallery and the backwards-compatibility guard, with a
-  `Makefile` that rebuilds both
+  `Makefile` that rebuilds both; `test/todofloats/` stress-tests the engine
+  (`make engine-check`)
 - `docs/` — design notes
 
-Copy `mytodonotes.sty` and `agentnotes.sty` into the paper directory and commit
-them, so collaborators who clone the repo can build it.
+Copy `todofloats.sty`, `mytodonotes.sty` and `agentnotes.sty` into the paper
+directory and commit them, so collaborators who clone the repo can build it
+(`tools/setup.sh <paper directory>` does the copying).
 
 `test/example.tex` exercises every note style across five agents with
 lorem-ipsum content — the built PDFs are committed for browsing without
@@ -76,11 +110,15 @@ building: [example.pdf](test/example.pdf) (indented paragraphs) and
 pre-`\newagent` style: it must keep building, and its rendering must not change,
 so that papers already set up with this skill keep working. Don't modernize it.
 
-After any change to the packages, rebuild both:
+After any change to the packages, rebuild both and run the engine tests:
 
 ```bash
-cd test && make
+cd test && make && make compat-check && make engine-check
 ```
+
+A note's layout comes from positions recorded in the previous run, so a paper
+needs three or four LaTeX runs from scratch (`latexmk` does them; the log says
+`Margin note positions have changed` until it is done).
 
 See [WORKFLOW.md](WORKFLOW.md) for the full workflow, including the three-line
 per-author macro pattern, how to set up a new paper, and how to migrate one that

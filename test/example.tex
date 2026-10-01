@@ -43,6 +43,11 @@
 \newcommand{\carol}[2][]{\note[#1]{carol}{notecolor-carol}{#2}}
 \newcommand{\Carol}[2][]{\carol[inline,#1]{#2}}
 
+% Or all at once from a list: each name gets \<name>, \<Name> and
+% notecolor-<name>.  A name without a color gets one derived from its letters
+% (the same in every paper), kept away from the hues already in use.
+\noteauthors{erin, frank, grace=orange!25}
+
 \title{agentnotes: the whole menagerie\ifdefined\exampleparskip\\(parskip variant)\fi}
 \author{}
 \date{}
@@ -195,6 +200,20 @@ dwarf a one-symbol replacement, and two would make the formula unreadable:
 
 A dark custom agent is not darkened further, so it stays legible against the
 body text:\ \slatechange[bob]{sed quia consequuntur magni dolores eos}.
+
+\section{Numbers, references, and authors from a list}
+
+Every note opens with a tag that carries its number.\erin{\label{note:erin}
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Erin, Frank and Grace
+come from one \texttt{\textbackslash noteauthors} line; Erin's and Frank's
+colors are derived from their names.}  A \texttt{\textbackslash label} inside
+a note makes \texttt{\textbackslash ref} print the same tag, linked to the
+note.\frank{I agree with \ref{note:erin}, and so does \ref{note:own}.
+\response{grace} Sed do eiusmod tempor incididunt ut labore.
+\response{erin} Ut enim ad minim veniam.}  An agent's note can be referred to
+in the same way.\claude[grace]{\label{note:own}Lorem ipsum dolor sit amet,
+consectetur adipiscing elit.}  Somebody without macros still gets a color of
+their own.\notewho{heidi}{Excepteur sint occaecat cupidatat non proident.}
 
 \section{Long inline notes break across pages}
 
