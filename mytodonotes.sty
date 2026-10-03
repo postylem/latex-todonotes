@@ -23,7 +23,7 @@
 %%   * Numbers.  Every note opens with a tag: its author on the saturated hue
 %%     of the note color, and its number.  \label{note:<x>} in the text of a
 %%     note makes \cref{note:<x>} (or \ref) print the same tag, linked to the
-%%     note.
+%%     note; with the option refs=number it prints #<number> instead.
 %%   * \response{<name>}: a reply inside somebody else's note, under a rule.
 %%
 %% OPTIONS
@@ -32,6 +32,9 @@
 %%   textsize=<name>    size of the note text, a command name without the
 %%                      backslash (default scriptsize)
 %%   seed=<integer>     changes the colors that are derived from names
+%%   refs=tag|number    what \cref{note:<x>} prints: the note's tag, author and
+%%                      number (default), or #<number> in the text font, which
+%%                      is quieter in running text
 %%   Everything else goes to todofloats.sty (side, gap, sep, grow, debug, ...)
 %%   and from there to todonotes (disable, ...).
 
@@ -44,6 +47,7 @@
 \DeclareStringOption{agents}
 \DeclareStringOption[scriptsize]{textsize}
 \DeclareStringOption[0]{seed}
+\DeclareStringOption[tag]{refs}
 \DeclareDefaultOption{\PassOptionsToPackage{\CurrentOption}{todofloats}}
 \ProcessKeyvalOptions{mytodonotes}
 \PassOptionsToPackage{textsize=\mtn@opt@textsize}{todofloats}
@@ -318,7 +322,14 @@
 %% <tag command>{<number>}: the tag itself.  (\p@note cannot take the number
 %% as an argument: cleveref does not expand \thenote first.)
 \newcounter{note}
-\renewcommand*\p@note{\note@curtag}
+% refs=number: the text of a reference is \note@numref{<number>}, i.e. #<number>
+\DeclareRobustCommand*\note@numref[1]{\#\nobreak#1}
+\def\mtn@refs@number{number}
+\ifx\mtn@opt@refs\mtn@refs@number
+  \renewcommand*\p@note{\note@numref}
+\else
+  \renewcommand*\p@note{\note@curtag}
+\fi
 \renewcommand*\thenote{{\arabic{note}}}
 \def\theHnote{\arabic{note}}
 \def\note@curtag{}

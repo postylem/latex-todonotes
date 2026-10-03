@@ -66,6 +66,20 @@ compat-bless: test-compat.pdf
 engine-check: $(PACKAGES)
 	cd todofloats && bash check.sh
 
+# The option refs=number: \ref and \cref of a note print #<number>, not its tag.
+# Builds the example with the option passed from outside and checks the aux
+# (every note label is \note@numref) and the text of the PDF (the references).
+refs-number: example.tex $(PACKAGES)
+	@latexmk -pdf -interaction=nonstopmode -jobname=example-refs \
+	  -usepretex='\PassOptionsToPackage{refs=number}{mytodonotes}' example.tex >/dev/null 2>&1; \
+	n=$$(grep -c 'newlabel{note:' example-refs.aux); \
+	m=$$(grep 'newlabel{note:' example-refs.aux | grep -c 'note@numref'); \
+	if [ "$$n" -gt 0 ] && [ "$$n" = "$$m" ] && pdftotext example-refs.pdf - | tr '\n' ' ' | grep -q 'agree with #[0-9]'; then \
+	  echo "refs-number OK: $$n note labels print #<number>"; \
+	else \
+	  echo "REFS-NUMBER FAILED: $$m of $$n note labels use #<number>"; exit 1; \
+	fi
+
 # tools/open_items.py against the example: the items it finds, with the numbers
 # the notes have in the PDF.
 open-items: example.pdf
@@ -74,6 +88,7 @@ open-items: example.pdf
 clean:
 	latexmk -c example.tex test-compat.tex
 	latexmk -c -jobname=example-parskip example.tex
+	latexmk -C -jobname=example-refs example.tex
 	rm -rf todofloats/out
 
-.PHONY: all clean compat-check compat-build compat-render compat-bless engine-check open-items
+.PHONY: all clean compat-check compat-build compat-render compat-bless engine-check refs-number open-items
