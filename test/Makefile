@@ -80,6 +80,16 @@ refs-number: example.tex $(PACKAGES)
 	  echo "REFS-NUMBER FAILED: $$m of $$n note labels use #<number>"; exit 1; \
 	fi
 
+# The option tags=plain: every tag (notes, replies, references) is plain text.
+# Builds the example with the option passed from outside; it must compile, and
+# its text must still carry the authors' names and the note numbers.
+tags-plain: example.tex $(PACKAGES)
+	@latexmk -pdf -interaction=nonstopmode -jobname=example-tags \
+	  -usepretex='\PassOptionsToPackage{tags=plain}{mytodonotes}' example.tex >/dev/null 2>&1; \
+	if grep -q '^!' example-tags.log; then echo "TAGS-PLAIN FAILED: errors in example-tags.log"; exit 1; fi; \
+	if pdftotext example-tags.pdf - | grep -q 'frank'; then echo "tags-plain OK: compiles, names and numbers present"; \
+	else echo "TAGS-PLAIN FAILED: author names missing from the text"; exit 1; fi
+
 # tools/open_items.py against the example: the items it finds, with the numbers
 # the notes have in the PDF.
 open-items: example.pdf
@@ -89,6 +99,7 @@ clean:
 	latexmk -c example.tex test-compat.tex
 	latexmk -c -jobname=example-parskip example.tex
 	latexmk -C -jobname=example-refs example.tex
+	latexmk -C -jobname=example-tags example.tex
 	rm -rf todofloats/out
 
-.PHONY: all clean compat-check compat-build compat-render compat-bless engine-check refs-number open-items
+.PHONY: all clean compat-check compat-build compat-render compat-bless engine-check refs-number tags-plain open-items

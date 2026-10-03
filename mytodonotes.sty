@@ -32,6 +32,9 @@
 %%   textsize=<name>    size of the note text, a command name without the
 %%                      backslash (default scriptsize)
 %%   seed=<integer>     changes the colors that are derived from names
+%%   tags=pill|plain    how an author's tag looks: a filled rounded label
+%%                      (default), or plain small text in the author's color,
+%%                      which draws far less attention
 %%   refs=tag|number    what \cref{note:<x>} prints: the note's tag, author and
 %%                      number (default), or #<number> in the text font, which
 %%                      is quieter in running text
@@ -48,6 +51,7 @@
 \DeclareStringOption[scriptsize]{textsize}
 \DeclareStringOption[0]{seed}
 \DeclareStringOption[tag]{refs}
+\DeclareStringOption[pill]{tags}
 \DeclareDefaultOption{\PassOptionsToPackage{\CurrentOption}{todofloats}}
 \ProcessKeyvalOptions{mytodonotes}
 \PassOptionsToPackage{textsize=\mtn@opt@textsize}{todofloats}
@@ -308,6 +312,19 @@
       \draw[color=#1, line width=\note@lw, rounded corners=\note@r] (0pt,\note@yb) rectangle (\note@xc,\note@yt);}}%
     \box\note@boxa\box\note@boxb\box\note@boxc}%
   \endgroup}
+
+% tags=plain: the same three parts as plain text, small and in the colors of the
+% cells, with no fill, frame, or bold face.
+\newcommand*\note@pill@plain[5]{%
+  \leavevmode\begingroup
+  \dimen@=\f@size\p@ \dimen@=.86\dimen@
+  \fontsize{\strip@pt\dimen@}{\strip@pt\dimen@}\sffamily\selectfont
+  {\color{#1}#2}%
+  \def\note@tmp{#4}\ifx\note@tmp\@empty\else{\color{#3}#4}\fi
+  \def\note@tmp{#5}\ifx\note@tmp\@empty\else{\color{#1}\,#5}\fi
+  \endgroup}
+\def\mtn@tags@plain{plain}
+\ifx\mtn@opt@tags\mtn@tags@plain \let\note@pill\note@pill@plain \fi
 
 % \notetag{<name>}{<note color>}{<number or empty>}: the tag of an author.
 % (Robust: it is the text of a reference to a note, and goes through the aux.)
