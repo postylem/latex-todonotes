@@ -81,6 +81,11 @@ context (the repo's instruction file, git user name) or ask; do not guess.
   agent prose nobody has reviewed. One flag per paragraph per agent-and-owner
   pair, and deliberately **no inline label**, so it stays usable inside math,
   where a label would be wider than the symbol it marks
+- **Agent-authored block-level text that is already applied**:
+  `\begin{<Agent>Change}[<owner>]...\end{<Agent>Change}` — the block version of
+  `\<agent>change`: your color, one flag in the margin where it starts. It is
+  not a box, so it may contain floats, headings and displays, and may start or
+  end in mid-paragraph
 - **New block-level text**: wrap in
   `\begin{<Agent>Suggest}[<owner>]...\end{<Agent>Suggest}` (renders like
   regular document text, just in your color: full text width, with a changebar
@@ -132,8 +137,12 @@ They answer different questions, and picking the wrong one misleads the author:
 | `\<agent>Suggest` | a proposal, **not applied** — wording you are offering | yes, accept or reject | **yes** |
 | `\<agent>change` | text you **already wrote** into the document | no, review at leisure | no |
 
-So a suggestion is a question to the author and reads as an aside, with a label
-and a colon. A change *is* the prose, so it stays in the text flow and is
+`<Agent>Change` and the `<Agent>Suggest` block stand in the same relation: the
+first is text that is in the paper now, the second a block the author accepts or
+drops.
+
+So a suggestion is a question to the author and reads as an aside, with a
+label. A change *is* the prose, so it stays in the text flow and is
 flagged in the margin instead. If you are proposing wording, use `Suggest`; if
 you have edited the document, use `change`. Marking an applied edit as a
 suggestion leaves the author hunting for a decision that has already been made.
@@ -243,6 +252,10 @@ When asked to set up the todonotes workflow in a new LaTeX project:
      \newagent{qwen}[name=Qwen, color=orange!60, mark=\ding{92}]
      \newagent{claude}[color=<color>]
      ```
+   - `\newagent{claude}[flag=false]` turns off the margin flags of that agent's
+     applied text (`\claudechange`, `ClaudeChange`). Use it in a paper where
+     most of the text is the agent's: a flag on every paragraph says nothing,
+     and each flag is a margin item that LaTeX has to place.
    - `grow` is the review layout: 80mm more paper on each side (`grow=<dimen>`
      for another width), all of it for the notes, around an unchanged text
      block. Leave it out to keep the page as it is; notes then use the margin

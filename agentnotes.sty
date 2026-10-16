@@ -11,6 +11,7 @@
 %%
 %%   \newagent{claude}                     % built-in preset
 %%   \newagent{claude}[color=Terracotta]   % preset, re-tinted for this paper
+%%   \newagent{claude}[flag=false]         % no margin flags for its applied text
 %%   \newagent{qwen}[name=Qwen, color=orange!60, mark=\ding{92}]   % custom
 %%
 %% For stem `claude' with display name `Claude' that gives:
@@ -18,8 +19,8 @@
 %%   \Claude[sam]{...}        inline variant
 %%   \claudeResponse[sam]     reply inside another author's note
 %%   \claudeSuggest[sam]{...} small inline text suggestion, in the agent's color
-%%   \claudechange[sam]{...}  agent-authored replacement text (owner arg is
-%%                            provenance only)
+%%   \claudechange[sam]{...}  agent-authored replacement text, already applied
+%%   \begin{ClaudeChange}[sam]...\end{ClaudeChange}    the same for a block
 %%   \begin{ClaudeSuggest}[sam]...\end{ClaudeSuggest}  block suggestion
 %%   \claudespark             the agent's mark on its own
 %%
@@ -155,12 +156,18 @@
   \else
     \expandafter\@secondoftwo
   \fi}
+% An agent declared with flag=false gets no flags: in a paper where most of the
+% text is the agent's, a flag on every paragraph says nothing, and every flag
+% is a margin item that has to be placed.
+\def\agent@true{true}
 \newcommand{\agent@markonce}[2]{% #1 = stem, #2 = owner
-  \agent@ifmeasuring{}{%
-    \ifcsname agent@seen@\the\agent@parno @#1@#2\endcsname\else
-      \expandafter\gdef\csname agent@seen@\the\agent@parno @#1@#2\endcsname{}%
-      \todofloatsflag{\agent@changemark{#1}{#2}}%
-    \fi}}
+  \expandafter\ifx\csname agent@flag@#1\endcsname\agent@true
+    \agent@ifmeasuring{}{%
+      \ifcsname agent@seen@\the\agent@parno @#1@#2\endcsname\else
+        \expandafter\gdef\csname agent@seen@\the\agent@parno @#1@#2\endcsname{}%
+        \todofloatsflag{\agent@changemark{#1}{#2}}%
+      \fi}%
+  \fi}
 % No \ifmmode branch is needed, and that is a feature: both the flag and
 % \color work in math mode, so there is no conditional left open while a body
 % that may contain \par is typeset.
@@ -228,7 +235,8 @@
 \pgfkeys{/agentnotes/.cd,
   name/.store in=\agent@disp,
   color/.store in=\agent@col,
-  mark/.store in=\agent@mark}
+  mark/.store in=\agent@mark,
+  flag/.store in=\agent@flag}
 
 \ExplSyntaxOn
 \NewExpandableDocumentCommand{\agent@titlecasefirst}{m}{\text_titlecase_first:n{#1}}
@@ -283,7 +291,9 @@
     {\edef\agent@disp{\@nameuse{agent@pname@#1}}%
      \edef\agent@col{\@nameuse{agent@pcolor@#1}}%
      \expandafter\let\expandafter\agent@mark\csname agent@pmark@#1\endcsname}%
+  \def\agent@flag{true}%
   \pgfkeys{/agentnotes/.cd, #2}%
+  \expandafter\let\csname agent@flag@#1\endcsname\agent@flag
   % Report a clash ourselves: \NewDocumentCommand would also refuse, but with a
   % message that says nothing about stems.
   \@ifundefined{#1}{}{\agent@clash{#1}{margin note}}%
@@ -320,7 +330,26 @@
   % Applied replacement text: colored text and a flag in the margin.
   \expandafter\NewDocumentCommand\csname#1change\endcsname{O{#1} +m}{%
     \agent@change{#1}{##1}{##2}}%
+  \agent@defchangeblock{#1}%
   \agent@defblock{#1}}
+
+% Applied block-level text, <Agent>Change: the block is in the agent's text
+% color, like \<agent>change, and the line it starts on gets the same flag in
+% the margin.  It is a plain group, not a box, so it may contain floats,
+% headings and displays, may start or end in mid-paragraph, and breaks across
+% pages like any text.  A block that starts between paragraphs hands its flag
+% to the first paragraph inside it.
+\newcommand{\agent@defchangeblock}[1]{% #1 = stem
+  \edef\agent@envname{\@nameuse{agent@word@#1}Change}%
+  \expandafter\NewDocumentEnvironment\expandafter{\agent@envname}{O{#1}}
+    {\begingroup
+     \ifvmode
+       \AddToHookNext{para/begin}{\agent@markonce{#1}{##1}}%
+     \else
+       \agent@markonce{#1}{##1}%
+     \fi
+     \color{agenttext-#1}\ignorespaces}
+    {\endgroup}}
 
 % Block suggestions: gutter changebar and agent-colored text, headed by a small
 % bold "<Agent>@<owner>" label (an omitted owner shows just the agent).

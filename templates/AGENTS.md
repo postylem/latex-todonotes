@@ -32,6 +32,7 @@ repository's instructions or the git user name, or ask; do not guess.
    | `\claudeSuggest[sam]{...}` | wording you **propose**; the paper's sentence is left as it is | yes |
    | `\begin{ClaudeSuggest}[sam] ... \end{ClaudeSuggest}` | a block of new text you propose | yes |
    | `\claudechange[sam]{...}` | text you have **already written into** the paper (works in math) | no |
+   | `\begin{ClaudeChange}[sam] ... \end{ClaudeChange}` | the same for a block; may contain floats and headings | no |
    Use `Suggest` when the author has to choose, `change` when you have made the
    edit. Prefer a proposal or a note to rewriting an author's sentences.
 3. **Notes are numbered.** Every note opens with a tag (who, and its number).
