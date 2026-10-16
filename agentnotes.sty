@@ -324,9 +324,12 @@
   % inherits that macro's rule and spacing.
   \expandafter\NewDocumentCommand\csname#1Response\endcsname{O{#1}}{%
     \response@with{\agent@who{#1}{##1}}}%
-  % Small inline suggestion.
+  % Small inline suggestion.  It starts with an interword space, replacing any
+  % space before it, so that the line can break before the label: glued to a
+  % preceding `(Section 4)' it formed one unbreakable unit, and the lines before it
+  % were stretched to fit.
   \expandafter\NewDocumentCommand\csname#1Suggest\endcsname{O{#1} +m}{%
-    {\color{agenttext-#1}\agent@who{#1}{##1}\hskip.4em\relax ##2}}%
+    \ifhmode\unskip\space\fi{\color{agenttext-#1}\agent@who{#1}{##1}\hskip.4em\relax ##2}}%
   % Applied replacement text: colored text and a flag in the margin.
   \expandafter\NewDocumentCommand\csname#1change\endcsname{O{#1} +m}{%
     \agent@change{#1}{##1}{##2}}%
