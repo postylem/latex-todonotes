@@ -104,7 +104,8 @@
 %%     no rerun is requested, checks the logs, verifies the layout from the
 %%     aux files and the text of the PDFs).
 %%   * A note inside a \caption is typeset twice by LaTeX when the caption
-%%     is longer than one line (harmless, but it counts as two ids).
+%%     is longer than one line, so it counts as two ids; the first copy is
+%%     only measured, never placed, and asks for no rerun.
 %%   * An inline note in restricted horizontal mode (inside an \hbox or an
 %%     l/c/r table cell), in math, or with the key noinlinepar, is one
 %%     unbreakable box.
@@ -245,7 +246,7 @@
 \int_new:N  \l_tdf_two_int
 \bool_new:N \l_tdf_first_bool
 \bool_new:N \l_tdf_defer_bool
-\bool_new:N \g_tdf_rerun_bool         % some note had no data this run
+\bool_new:N \g_tdf_rerun_bool         % the layout used stale data this run
 \prop_new:N \g_tdf_side_prop          % id -> l | r      (decided for this run)
 \prop_new:N \g_tdf_offset_prop        % id -> offset (sp, positive = down)
 \prop_new:N \g_tdf_anchorx_prop       % id -> anchor x (sp) from previous run
@@ -672,7 +673,11 @@
     \prop_get:NnNTF \g_tdf_side_prop {#1} \l_tdf_side_tl
       { \tl_set_eq:NN \tdf@side \l_tdf_side_tl }
       {
-        \bool_gset_true:N \g_tdf_rerun_bool
+        % No data from the previous run.  This asks for no rerun by itself: a
+        % note that reaches the page writes new labels, and the check at the
+        % end of the document sees them.  A copy that never reaches the page
+        % (the measuring pass of a caption longer than one line) writes none,
+        % and would otherwise ask for a rerun on every run.
         \str_case_e:nnF { \tdf@opt@side }
           {
             { left }  { \tl_set:Nn \tdf@side { l } }

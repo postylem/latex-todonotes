@@ -23,5 +23,13 @@ A long note\timv{A4 is in the left margin and long enough to be cut. \lipsum[3-7
 \lipsum[8-16]
 On the second page\claude{A5 is the first note of its page, so it goes right.} the turns start again,
 and\timv{A6 is the second note of its page: left.} so on.
-\lipsum[17-19]
+\lipsum[17-18]
+\begin{figure}[h]
+  \centering\fbox{a figure}
+  \caption{A caption longer than one line, so that LaTeX typesets it twice: once
+    to measure it, then for real.  The note in it\timv{A7 sits in a two-line
+    caption; its measuring copy never reaches the page.} must not make every
+    run ask for another one.}
+\end{figure}
+\lipsum[19]
 \end{document}
