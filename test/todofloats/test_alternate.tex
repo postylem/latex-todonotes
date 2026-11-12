@@ -1,0 +1,27 @@
+% Third test document for todofloats.sty: one-column text with side=alternate,
+% where the notes of each page take turns between the right and the left
+% margin, and leftmarginsep keeps the left notes clear of a strip next to the
+% text (line numbers, in a review copy).  One note in the left margin is long
+% enough to be cut, so its continuation must keep the same gap.  check.sh
+% compiles it and checks the layout and the page size.
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=2.5cm,heightrounded=true]{geometry}
+\usepackage{hyperref}
+\usepackage{lipsum}
+\usepackage{xcolor}
+\newcommand{\todofontsize}{\fontsize{7}{8}\selectfont}
+\usepackage[textsize=todofontsize,grow=40mm,side=alternate,leftmarginsep=15mm,authors={timv=magenta!10},agents={claude}]{mytodonotes} % [disable]
+
+\begin{document}
+\section{Alternating Margins}
+\lipsum[1]
+A first note\timv{A1 goes to the right margin.} here,
+a second\claude{A2 goes to the left margin, 15mm from the text.} close to it,
+and a third\timv{A3 goes to the right margin again, below A1.} on the same line.
+\lipsum[2]
+A long note\timv{A4 is in the left margin and long enough to be cut. \lipsum[3-7]} here.
+\lipsum[8-16]
+On the second page\claude{A5 is the first note of its page, so it goes right.} the turns start again,
+and\timv{A6 is the second note of its page: left.} so on.
+\lipsum[17-19]
+\end{document}

@@ -8,6 +8,8 @@
 #      pieces of notes that are cut across pages),
 #   3b. checks the text of the PDF: note numbers, references to notes, and the
 #      text on both sides of a page break in an inline note,
+#   3c. compiles test_wide.tex (grow) and test_alternate.tex (side=alternate,
+#      leftmarginsep) the same way and checks their layouts and page sizes,
 #   4. compiles the negative control (plain todonotes, \todo inside a float)
 #      and requires that it reproduces "Float(s) lost",
 #   5. renders the test PDF to PNG (pdftoppm -r 60) for a human check.
@@ -91,6 +93,35 @@ for pattern in 'Codex *2 +continued' 'Claude *3 +continued' 'continues on the ne
   fi
 done
 
+echo "== alternating margins (test_alternate.tex): side=alternate, leftmarginsep, grow=40mm"
+for i in 1 2 3 4 5 6; do
+  timeout 60 pdflatex -interaction=nonstopmode -output-directory=out test_alternate.tex > out/alternate$i.stdout 2>&1
+  echo "   run $i: exit $?"
+  grep -q -E 'Rerun (to|LaTeX)' out/test_alternate.log || break
+done
+for pattern in '^!' 'Rerun (to|LaTeX)' 'undefined' 'todofloats Warning' 'Overfull'; do
+  n=$(grep -c -E -- "$pattern" out/test_alternate.log)
+  printf '   %-20s %s\n' "$pattern" "$n"
+  [ "$n" -eq 0 ] || status=1
+done
+python3 check_layout.py out/test_alternate.aux --gap 4pt --expect-cut 1 > out/alternate_layout.txt
+[ $? -eq 0 ] || status=1
+tail -2 out/alternate_layout.txt | sed 's/^/   /'
+nleft=$(awk '$3 == "l"' out/alternate_layout.txt | wc -l)
+if [ "$nleft" -ge 2 ]; then
+  echo "   ok: $nleft notes or pieces in the left margin"
+else
+  echo "   FAILED: $nleft notes or pieces in the left margin, expected at least 2"
+  status=1
+fi
+size=$(pdfinfo out/test_alternate.pdf | awk '/Page size/ {printf "%.0fx%.0f", $3, $5}')
+if [ "$size" = "822x842" ]; then
+  echo "   ok: grow=40mm widens A4 to 290mm (page $size pt)"
+else
+  echo "   FAILED: page size $size pt, expected 822x842 (A4 plus 2 x 40mm)"
+  status=1
+fi
+
 echo "== negative control: plain todonotes with \\todo inside a float"
 timeout 60 pdflatex -interaction=nonstopmode -output-directory=out test_marginpar_in_float.tex > out/control.stdout 2>&1
 if grep -q 'Float(s) lost' out/test_marginpar_in_float.log; then
@@ -117,6 +148,7 @@ echo "== rendering pages for a human check"
 if command -v pdftoppm > /dev/null; then
   pdftoppm -r 60 -png out/test_todofloats.pdf out/page
   pdftoppm -r 60 -png out/test_wide.pdf out/wide
+  pdftoppm -r 60 -png out/test_alternate.pdf out/alt
   ls out/page-*.png out/wide-*.png | sed 's/^/   /'
 else
   echo "   pdftoppm not found; skipped"

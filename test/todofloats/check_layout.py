@@ -8,7 +8,9 @@ the page geometry record, and asserts:
   * every note lies inside the page and inside the margin of the correct side
     (right of the text block for side r, left of it for side l);
   * the side follows the rule: two-column text -> the margin of the column
-    the anchor is in (anchor x vs page center); one-column text -> right;
+    the anchor is in (anchor x vs page center); one-column text -> right,
+    or with side=alternate right, left, right, ... on each page in id order;
+  * a note in the left margin keeps leftmarginsep from the text block;
   * note and anchor are on the same page;
   * on every (page, side) consecutive notes do not overlap: the bottom of
     note i is at least `gap` above the top of note i+1;
@@ -55,8 +57,12 @@ def parse_aux(path):
     if m:
         vals = [int(v) for v in re.findall(r"\{(-?\d+)\}", m.group(1))]
         keys = ["paperwidth", "paperheight", "textleft", "textright",
-                "ceiling", "floor", "marginparwidth", "marginparsep"]
+                "ceiling", "floor", "marginparwidth", "marginparsep",
+                "leftmarginsep", "alternate"]
         geo = dict(zip(keys, vals))
+        # records written before side=alternate and leftmarginsep existed
+        geo.setdefault("leftmarginsep", geo["marginparsep"])
+        geo.setdefault("alternate", 0)
     labels = {}
     for name, props in re.findall(r"\\zref@newlabel\{(tdf@(?:[an]@\d+|c@\d+@\d+))\}\{(.*?)\}\n", text):
         labels[name] = {k: int(v) for k, v in re.findall(r"\\(\w+)\{(-?\d+)\}", props)}
@@ -133,6 +139,17 @@ def main(argv):
         failures.append("no note records found in %s" % aux)
 
     center = geo["paperwidth"] // 2
+    # side=alternate: in one-column text the first pieces of each page take
+    # turns, right first, in id order
+    turn = {}
+    if geo["alternate"]:
+        by_page = defaultdict(list)
+        for n in notes:
+            if n["piece"] == 1 and not n["twocol"]:
+                by_page[n["page"]].append(n["id"])
+        for ids in by_page.values():
+            for k, nid in enumerate(sorted(ids)):
+                turn[nid] = "l" if k % 2 else "r"
     for n in notes:
         tag = "note %d%s (page %d, side %s)" % (
             n["id"], "" if n["piece"] == 1 else " piece %d" % n["piece"], n["page"], n["side"])
@@ -147,11 +164,14 @@ def main(argv):
         if n["side"] == "r" and n["x"] + tol < geo["textright"]:
             failures.append("%s overlaps the text block from the right margin (x=%s < textright=%s)"
                             % (tag, pt(n["x"]), pt(geo["textright"])))
-        if n["side"] == "l" and n["x"] + n["wd"] > geo["textleft"] + tol:
-            failures.append("%s overlaps the text block from the left margin (x+wd=%s > textleft=%s)"
-                            % (tag, pt(n["x"] + n["wd"]), pt(geo["textleft"])))
+        if n["side"] == "l" and n["x"] + n["wd"] > geo["textleft"] - geo["leftmarginsep"] + tol:
+            failures.append("%s is closer than leftmarginsep=%s to the text block (x+wd=%s > textleft=%s)"
+                            % (tag, pt(geo["leftmarginsep"]), pt(n["x"] + n["wd"]), pt(geo["textleft"])))
         # side rule
-        want = ("l" if n["ax"] < center else "r") if n["twocol"] else "r"
+        if n["twocol"]:
+            want = "l" if n["ax"] < center else "r"
+        else:
+            want = turn.get(n["id"], "r")
         if n["piece"] == 1 and want != n["side"]:
             failures.append("%s should be on side %s (anchor x=%s, twocol=%d)"
                             % (tag, want, pt(n["ax"]), n["twocol"]))

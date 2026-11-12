@@ -22,7 +22,8 @@
 %%     warning is issued while positions are still moving):
 %%     - side selection: in two-column mode the note goes to the margin of
 %%       the column its anchor sits in (anchor x compared with the page
-%%       center); in one-column mode always the right margin.
+%%       center); in one-column mode the right margin, or, with
+%%       side=alternate, right and left in turn on each page.
 %%     - overlap avoidance: for every (absolute page, margin side) the notes
 %%       are stacked top-down at their anchor line; a note that would overlap
 %%       the previous one is pushed down by the needed amount plus `gap'.  If
@@ -52,7 +53,16 @@
 %%   before or after it (the text-area geometry is read at \begin{document}).
 %%
 %% OPTIONS
-%%   side=auto|left|right   margin to use (default auto, see above)
+%%   side=auto|left|right|alternate
+%%                          margin to use (default auto, see above).  With
+%%                          alternate, the notes of each page of one-column
+%%                          text take turns: right, left, right, ..., in the
+%%                          order of the notes, which halves the stack in each
+%%                          margin; two-column text is placed as with auto.
+%%   leftmarginsep=<dimen>  space between the text block and a note in the
+%%                          left margin (default \marginparsep), e.g. to clear
+%%                          line numbers printed there; `grow' narrows the
+%%                          notes to fit it
 %%   grow[=<dimen>]         review layout: widen the paper by <dimen> on each
 %%                          side (80mm if no value is given) and give all of
 %%                          each side margin to the notes.  The text block does
@@ -107,7 +117,7 @@
 %%     use \pdfcolorstackinit and \pdfstartlink and are skipped without them).
 %% ---------------------------------------------------------------------------
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{todofloats}[2026/10/02 v0.3 breakable todonotes, margin notes inside floats]
+\ProvidesPackage{todofloats}[2026/11/11 v0.4 breakable todonotes, margin notes inside floats]
 
 \RequirePackage{kvoptions}
 \SetupKeyvalOptions{family=todofloats,prefix=tdf@opt@}
@@ -116,6 +126,7 @@
 \DeclareStringOption[3pt]{sep}
 \DeclareStringOption[3pt]{inlineskip}
 \DeclareStringOption[0pt]{grow}[80mm]
+\DeclareStringOption{leftmarginsep}
 \DeclareBoolOption{debug}
 \DeclareDefaultOption{\PassOptionsToPackage{\CurrentOption}{todonotes}}
 \ProcessKeyvalOptions{todofloats}
@@ -197,6 +208,7 @@
 \newif\iftdf@boxed
 \newif\iftdf@nofill
 \newdimen\tdf@growdim
+\newdimen\tdf@lsep  % space between the text block and a left-margin note
 
 \renewcommand\todofloatsmark[1]{\protected@xdef\tdf@mark{#1}}
 \gdef\tdf@mark{}
@@ -251,6 +263,19 @@
 \tl_new:N   \l_tdf_key_tl
 \tl_new:N   \l_tdf_side_tl
 
+% --- side=alternate in one-column text: the notes of a page take turns,
+%     right first, in the order they are read (by id); one counter per page
+\cs_new_protected:Npn \tdf_take_turn:n #1
+  {
+    \tl_set:Nx \l_tmpa_tl
+      { g_tdf_turn_ \zref@extractdefault { tdf@n@#1 } { abspage } { 1 } _int }
+    \int_if_exist:cF { \l_tmpa_tl } { \int_new:c { \l_tmpa_tl } }
+    \int_if_odd:nTF { \int_use:c { \l_tmpa_tl } }
+      { \tl_set:Nn \l_tdf_side_tl { l } }
+      { \tl_set:Nn \l_tdf_side_tl { r } }
+    \int_gincr:c { \l_tmpa_tl }
+  }
+
 % --- read one note's data from the aux and file it into its page/side group
 \cs_new_protected:Npn \tdf_read_note:n #1
   {
@@ -271,7 +296,11 @@
                   { \tl_set:Nn \l_tdf_side_tl { l } }
                   { \tl_set:Nn \l_tdf_side_tl { r } }
               }
-              { \tl_set:Nn \l_tdf_side_tl { r } }
+              {
+                \str_if_eq:eeTF { \tdf@opt@side } { alternate }
+                  { \tdf_take_turn:n {#1} }
+                  { \tl_set:Nn \l_tdf_side_tl { r } }
+              }
           }
         \prop_gput:Nnx \g_tdf_side_prop {#1} { \l_tdf_side_tl }
         \prop_gput:Nnx \g_tdf_anchorx_prop {#1}
@@ -736,6 +765,10 @@
 % The review layout (option grow): more paper on both sides of an unchanged
 % text block.  Done here, after geometry has set the page up, so it works with
 % any class and with or without geometry.
+\def\tdf@alternate{alternate}
+\def\tdf@setlsep{%
+  \ifx\tdf@opt@leftmarginsep\@empty \tdf@lsep=\marginparsep
+  \else \tdf@lsep=\dimexpr\tdf@opt@leftmarginsep\relax \fi}
 \def\tdf@grow{%
   \tdf@growdim=\dimexpr\tdf@opt@grow\relax
   \ifdim\tdf@growdim>\z@
@@ -743,9 +776,12 @@
     \advance\oddsidemargin \tdf@growdim
     \advance\evensidemargin \tdf@growdim
     \marginparsep=3mm
-    % the narrower of the two side margins, less a gap on either side of the note
+    \tdf@setlsep
+    % the narrower of the two side margins, less a gap on either side of the
+    % note; on the left, the gap next to the text is \tdf@lsep
     \dimen@=\dimexpr\tdf@horigin+\hoffset+\oddsidemargin\relax
     \dimen@ii=\dimexpr\paperwidth-\dimen@-\textwidth\relax
+    \advance\dimen@ -\dimexpr\tdf@lsep-\marginparsep\relax
     \ifdim\dimen@ii<\dimen@ \dimen@=\dimen@ii \fi
     \marginparwidth=\dimexpr\dimen@-2\marginparsep\relax
     \ifdefined\pdfpagewidth \pdfpagewidth=\paperwidth \fi
@@ -758,6 +794,7 @@
 
 \AtBeginDocument{%
   \tdf@grow
+  \tdf@setlsep
   \tdf@sepdim=\dimexpr\tdf@opt@sep\relax
   \setbox\tdf@tmpbox\hbox{\setkeys{todonotes}{}\@todonotes@useSizeCommand\strut
     \global\tdf@strutht=\ht\strutbox \global\tdf@strutdp=\dp\strutbox}%
@@ -770,7 +807,8 @@
         {\number\dimexpr 1in+\oddsidemargin\relax}%
         {\number\dimexpr 1in+\oddsidemargin+\textwidth\relax}%
         {\tdf@ceiling}{\tdf@floor}%
-        {\number\marginparwidth}{\number\marginparsep}}}%
+        {\number\marginparwidth}{\number\marginparsep}%
+        {\number\tdf@lsep}{\ifx\tdf@opt@side\tdf@alternate 1\else 0\fi}}}%
   \fi
 }
 \def\tdf@aux@geometry#1{}% (the aux value is only used by external checkers)
@@ -1098,6 +1136,7 @@
         offset=\tdf@offset, x=\tdf@currxpos}%
     \fi
     \let\@mn@margintest\tdf@margintest
+    \if l\tdf@side \marginparsep=\tdf@lsep \fi
     \marginnote[\tdf@notecontent]{\tdf@notecontent}[\tdf@offset]%
   \endgroup
 }
@@ -1140,7 +1179,7 @@
   \else
     \ifnum#2<\c@abspage \tdf@setrerun \fi
     \edef\tdf@x{\the\dimexpr\tdf@textleft
-      \if l#3-\marginparsep-\wd#1\else+\textwidth+\marginparsep\fi\relax}%
+      \if l#3-\tdf@lsep-\wd#1\else+\textwidth+\marginparsep\fi\relax}%
     \edef\tdf@y{\the\dimexpr#4sp-\ht#1-\paperheight\relax}%
     \zref@setcurrent{tdfht}{\number\ht#1}%
     \zref@setcurrent{tdfwd}{\number\wd#1}%

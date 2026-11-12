@@ -42,6 +42,10 @@ own unbreakable boxes:
 - `grow` is a review layout: the paper becomes 80mm wider on each side and the
   notes get the space, while the text block, and so every line and page break,
   stays as it is. `disable` turns the notes and the growing off.
+- `side=alternate` puts the notes of each page of a one-column paper in the
+  right and left margins in turn, which halves the stack on each side, so a
+  smaller `grow` (say `grow=40mm`) is enough. `leftmarginsep=<dimen>` moves the
+  left notes away from the text, e.g. past line numbers in a review copy.
 
 ## Any agent, several at once
 
