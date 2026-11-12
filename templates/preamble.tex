@@ -1,0 +1,9 @@
+% Notes (latex-todonotes skill).  Put this block after xcolor/tikz and before
+% cleveref.  Edit the list of authors: each one gets \<name>{...} for a margin
+% note and \<Name>{...} for a note in the text; an author without a color gets
+% one derived from the name.  One agents entry (or one \newagent line) per AI
+% agent that works on the paper.
+%   grow     review layout: 80mm more paper on each side for the notes; the
+%            text block and every line and page break stay as they are
+%   disable  no notes, no growing: the paper as it will be submitted
+\usepackage[authors={sam, lee}, agents={claude, codex}, grow]{mytodonotes} % [disable]

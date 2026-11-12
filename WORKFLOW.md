@@ -81,6 +81,11 @@ context (the repo's instruction file, git user name) or ask; do not guess.
   agent prose nobody has reviewed. One flag per paragraph per agent-and-owner
   pair, and deliberately **no inline label**, so it stays usable inside math,
   where a label would be wider than the symbol it marks
+- **Agent-authored block-level text that is already applied**:
+  `\begin{<Agent>Change}[<owner>]...\end{<Agent>Change}` — the block version of
+  `\<agent>change`: your color, one flag in the margin where it starts. It is
+  not a box, so it may contain floats, headings and displays, and may start or
+  end in mid-paragraph
 - **New block-level text**: wrap in
   `\begin{<Agent>Suggest}[<owner>]...\end{<Agent>Suggest}` (renders like
   regular document text, just in your color: full text width, with a changebar
@@ -88,35 +93,40 @@ context (the repo's instruction file, git user name) or ask; do not guess.
   the owner's note color abutting it on every page the block spans, capping the
   label flag on the first — headed by a small `<Agent>@<owner>` label)
 
-Every one of these labels is set the same way: your mark and your name in your
-color on your own tint, then `@<owner>` in the ordinary text color on
-`notecolor-<owner>` itself, unmodified. The owner half therefore looks exactly
-like that author's name already does in their own `\<author>{...}` note or
-`\response{<author>}`. The colorlet is looked up automatically from the
-author's existing macro setup, so no agent-specific setup is needed.
+Every one of these labels is a **tag**, set the same way: your mark and your
+name in white on your color, then `@<owner>` in white on the owner's color, the
+same color that author's own tag has. At the head of a note the tag ends with
+the note's number. The owner's color is looked up from `notecolor-<owner>`,
+which the author's own setup defines, so no agent-specific setup is needed; an
+owner who has no color yet gets one derived from the name.
 
-Author note colors are chosen to sit *behind* text, so they are used as
-backgrounds and never as text colors. An earlier version of this package tinted
-the `@<owner>` text with a darkened author color instead, which read poorly in
-general and became nearly invisible in the commonest case of all: a
-`\<agent>Response[<owner>]` inside a note belonging to that same owner. Where an
-owner color marks non-text elements — the margin note's frame and leader line,
-the block pole's stripe and flag cap — it is `notecolor-<owner>` itself,
-unmodified, so the owner reads as one color everywhere.
+Author note colors are chosen to sit *behind* text, so they are never used as
+text colors: a tag uses the same hue made dark enough to carry white text.
 
-The backgrounds are painted as rules in a zero-width, zero-height overlay, so a
-label's metrics are exactly those of the plain text — adding one never shifts
-anything horizontally or vertically.
+Omitting `[<owner>]` gives a tag with your name alone; prefer always tagging the
+owner so multi-author projects can tell whose session made an edit.
 
-Omitting `[<owner>]` (or naming an owner without a `notecolor`) falls back to
-your plain color with no `@` suffix; prefer always tagging the owner so
-multi-author projects can tell whose session made an edit.
+### Numbers and references
+
+Notes are numbered in the order they appear, and the number is part of the tag.
+Never type a number, since numbers shift when notes are added or removed. To
+refer to a note, put `\label{note:<name>}` at the start of its text and write
+`\cref{note:<name>}` (or `\ref`), which prints the note's tag, linked to it:
+
+```latex
+\sam{\label{note:rhs} Wrong! Fix RHS of equation.
+\claudeResponse[sam] Fixed; the same slip was in \cref{note:lhs}.}
+```
 
 **Legacy projects**: papers set up with the oldest convention use
 `\noteClaude{...}`/`\NoteClaude{...}`, untagged `\claudeSuggest{...}`, and
-`\response{claude}`. Follow whatever convention the project already uses;
-introduce the owner-tagged macros only when setting up new projects or when
-asked to migrate.
+`\response{claude}` (which is set as your tag when `claude` is an agent of the
+paper). Some define `\claudeSuggest` and the `ClaudeSuggest` environment
+themselves and use them for text that is *already applied*, to be unwrapped by
+the author on review; there, a proposal goes into a note instead. Follow
+whatever convention the project already uses, as its own instruction file
+describes it; introduce the owner-tagged macros only when setting up new
+projects or when asked to migrate.
 
 ### `\<agent>Suggest` or `\<agent>change`?
 
@@ -127,28 +137,34 @@ They answer different questions, and picking the wrong one misleads the author:
 | `\<agent>Suggest` | a proposal, **not applied** — wording you are offering | yes, accept or reject | **yes** |
 | `\<agent>change` | text you **already wrote** into the document | no, review at leisure | no |
 
-So a suggestion is a question to the author and reads as an aside, with a label
-and a colon. A change *is* the prose, so it stays in the text flow and is
+`<Agent>Change` and the `<Agent>Suggest` block stand in the same relation: the
+first is text that is in the paper now, the second a block the author accepts or
+drops.
+
+So a suggestion is a question to the author and reads as an aside, with a
+label. A change *is* the prose, so it stays in the text flow and is
 flagged in the margin instead. If you are proposing wording, use `Suggest`; if
 you have edited the document, use `change`. Marking an applied edit as a
 suggestion leaves the author hunting for a decision that has already been made.
 
 ## Mechanical notes
 
-- **`\<agent>{}` cannot appear inside an `<Agent>Suggest` box.** It is a
-  `\marginpar`, and tcolorbox swallows it — the failure surfaces as
-  `! LaTeX Error: Float(s) lost`, not as a missing note. Put the margin note
-  immediately *before* `\begin{<Agent>Suggest}`.
+- **Notes work everywhere and break across pages.** They are drawn by
+  `todofloats.sty`, not by todonotes' own unbreakable boxes: a margin note may
+  sit inside a float, a minipage, a table cell, an algorithm, or an
+  `<Agent>Suggest` block, and an inline note is broken across columns and
+  pages like text. When the notes of a page do not fit in its margin, they are
+  cut between lines and continue at the top of the same margin on the next
+  page, under a "continued" header. So never split a long note by hand.
+- **No floats inside an `<Agent>Suggest` block.** The block is a box, and a
+  `figure` or `table` environment cannot float out of one. Put the float
+  outside the block, or mark its caption with `\<agent>change`.
+- **No `\footnote` inside a note**; use parentheses.
 - **Prefer suggestion blocks and margin notes to rewriting prose in place.**
   Editing an author's sentences directly is hard for them to review; an
   `<Agent>Suggest` block leaves the original intact and is trivial to accept or
   drop. When a block is meant to *replace* nearby text rather than add to it,
   say so in its first sentence.
-- **Inline notes break across pages.** `[inline]` notes are typeset as a
-  breakable box (todonotes' own inline notes are single unbreakable TikZ
-  nodes), so a long inline comment flows onto the next page instead of
-  overflowing it. Other todonotes options passed alongside `inline` are
-  ignored on this path.
 - **Paragraphs inside notes follow the document's style.** Note bodies restore
   the document's `\parindent`/`\parskip` (captured at begin-document), and
   `<Agent>Suggest` blocks keep them directly (`parbox=false`), so
@@ -156,32 +172,31 @@ suggestion leaves the author hunting for a decision that has already been made.
   paper does — indentation by default, skips under `\usepackage{parskip}`.
   Between `\response` turns, a rule with a fixed 3pt on each side does the
   separating instead of `\parskip`.
-- **A note never changes the surrounding indentation.** `\marginpar` (and hence
-  todonotes' `\todo`) issued in vertical mode clears `\if@nobreak`, so a note
-  placed between a heading and its first paragraph used to silently re-enable
-  that paragraph's indent. `\note` (mytodonotes v1.6) snapshots the flag and
-  restores it after the note, for margin and inline notes alike: the next
-  paragraph indents exactly as it would have without the note.
+- **A note never changes the surrounding indentation.** A margin note issued
+  between paragraphs starts a paragraph of its own for its anchor, which would
+  use up the "first paragraph after a heading" state, so `\note` snapshots that
+  flag and restores it after the note: the next paragraph indents exactly as it
+  would have without the note. The text right after an *inline* note is not
+  indented.
 - **Deriving a color from an agent's base color needs the color *name*.**
   `agenttext-<stem>` and `agentbg-<stem>` are derived from `agentcolor-<stem>`
   rather than from the expression that defined it, because a base expression
   may itself contain `!` — `black!55!80!black` is a malformed xcolor chain and
   fails with ``Undefined color `80'``. An expression that happens to end in a
   color name, such as `teal!70!black`, masks the problem.
-- **Margin flags need more than one pass.** `\<agent>change`'s margin flag is a
-  `\marginnote`, which routes its position through the `.aux` file and renders
-  **nothing at all** on a first pass. Build with `latexmk`, or run the engine
-  twice; a single run makes the flags look broken when they are merely not
-  placed yet.
-- **`\marginpar` cannot be used from math mode**, which is why the flag is a
-  `\marginnote`. `\marginpar` — and so todonotes' `\todo`, and so
-  `\<agent>{}` — fails there with `! LaTeX Error: Not in outer par mode.`
-  `\marginnote` is also non-floating, so unlike `\<agent>{}` it survives
-  inside a suggestion block.
+- **The margin needs more than one pass.** Where a note or a change flag goes
+  is computed from the positions recorded in the previous run, so nothing is
+  placed right on the first pass. Build with `latexmk`; from scratch it takes
+  three or four runs, and the log says `Margin note positions have changed.
+  Rerun LaTeX` until the layout is final.
+- **A note cannot be issued from math mode** (`\<agent>{}` there ends up inside
+  the formula). `\<agent>change` can: its flag goes to the margin from inline
+  math, displays, and `align`. Put a note right after the formula instead.
 - **Build before reporting.** These macros are easy to get subtly wrong (colors
   that vanish across a page break, notes that swallow floats), and a broken
-  preamble breaks the collaborator's build too. Run `make` in this skill's
-  `test/` directory after changing the packages, and commit the refreshed
+  preamble breaks the collaborator's build too. Run `make`, `make compat-check` and
+  `make engine-check` in this skill's `test/` directory after changing the
+  packages, and commit the refreshed
   `test/example.pdf` and `test/example-parskip.pdf` (they are in the repo so
   humans can browse the styles without building). `test/example.tex` exercises
   every note style across several agents; `test/test-compat.tex` guards
@@ -190,16 +205,20 @@ suggestion leaves the author hunting for a decision that has already been made.
 
 ## After completing each editing task
 
-1. **Enumerate open items**: Scan the paper for author notes
-   (`\sam{}`/`\Sam{}`-style lowercase-name macros, or legacy
-   `\noteAuthor{}`/`\NoteAuthor{}`), agent notes from *any* agent in the paper
-   (`\claude[...]{}`, `\codex[...]{}`, `\gemini[...]{}`, `\ai[...]{}`, their
-   capitalized inline forms, legacy `\noteClaude{}`),
-   `\<agent>Suggest`/`<Agent>Suggest` suggestions awaiting a decision, and
-   `TODO` markers
+1. **Enumerate open items**: run `tools/open_items.py <main.tex>` from this
+   skill's directory (after a build, so that it can print the number each note
+   has in the PDF). It lists author notes and agent notes from *any* agent with
+   the replies inside them and who spoke last, and the `\<agent>Suggest` /
+   `<Agent>Suggest` proposals awaiting a decision; `--awaiting <name>` keeps
+   the items where `<name>` did not have the last word. Without the tool, scan
+   the paper for the same things by hand, and for `TODO` markers
 2. **Present the list**: Show a numbered list of open items with brief
    descriptions and line references
 3. **Suggest next task**: Recommend which item to tackle next
+
+Applied text (`\<agent>change`) is not an open item, and neither is
+`\<agent>Suggest` in a paper that defines it itself as applied text (the tool
+detects that).
 
 Enumerate other agents' notes as well as your own. A suggestion left by
 another agent is still an open item for the author.
@@ -208,39 +227,50 @@ another agent is still an open item for the author.
 
 When asked to set up the todonotes workflow in a new LaTeX project:
 
-1. Copy `mytodonotes.sty` **and** `agentnotes.sty` from this skill's directory
-   into the paper directory, and commit them — collaborators who clone the repo
-   need them to build. (Copy `claudenotes.sty` too only if the paper already
-   loads it; new papers do not need it.)
-2. Load both in the preamble and instantiate each agent working on the paper —
-   all fixed machinery lives in the packages, nothing to paste inline:
+1. Run `tools/setup.sh <paper directory>` from this skill's directory. It copies
+   `todofloats.sty`, `mytodonotes.sty` and `agentnotes.sty` into the paper (and
+   a starting `AGENTS.md`, see step 4), and registers the paper's `main.tex`
+   for `tools/sync.sh`, which updates the copies when the packages change.
+   Commit them: collaborators who clone the repo need them to build. (Copy `claudenotes.sty` too only if the paper
+   already loads it; new papers do not need it.)
+2. Load the package in the preamble, after `xcolor`/`tikz` and before
+   `cleveref` — one line, from `templates/preamble.tex`:
    ```latex
-   \usepackage{mytodonotes}   % todonotes config, \note, \response, \notewho
-   \usepackage{agentnotes}    % \newagent and the macro family it mints
-   \newagent{claude}          % one line per agent; add \newagent{codex} etc.
+   \usepackage[authors={sam, lee}, agents={claude, codex}, grow]{mytodonotes} % [disable]
    ```
-   A stem with a built-in preset needs nothing more. Anything else supplies its
-   own name, color and mark:
-   ```latex
-   \newagent{qwen}[name=Qwen, color=orange!60, mark=\ding{92}]
-   ```
-   and any agent can be re-tinted for one paper with
-   `\newagent{claude}[color=<color>]`.
-3. Define per-author note macros in the document preamble (the paper-by-paper
-   part), in the bare-name style, **three lines per author**:
-   ```latex
-   \colorlet{notecolor-sam}{red!40}
-   \newcommand{\sam}[2][]{\note[#1]{sam}{notecolor-sam}{#2}}
-   \newcommand{\Sam}[2][]{\sam[inline,#1]{#2}}
-   ```
-   The `notecolor-<name>` colorlet is not just decoration: every agent takes
-   its owner styling from it automatically (borders, leader lines, and the block
-   pole's owner stripe all use the color unmodified), so a new author needs
-   **no agent-specific setup**. Check that a name doesn't clash with an existing
-   LaTeX command (an author named `max` or `sec` needs a variant) before
-   defining it. The same caution applies to agent stems.
+   - `authors={...}` declares the people: each gets `\sam{...}` (margin),
+     `\Sam{...}` (inline) and the color `notecolor-sam`. A color is derived
+     from the name unless one is given (`lee=teal!20`). Check that a name does
+     not clash with an existing LaTeX command (an author named `max` or `sec`
+     needs a variant; the package reports the clash). `\noteauthors{...}` does
+     the same after the package is loaded, and the three-line pattern
+     (`\colorlet{notecolor-sam}{red!40}` plus two `\newcommand`s on `\note`)
+     still works.
+   - `agents={...}` declares the agents, as `\newagent{<stem>}` does. A stem
+     with a built-in preset needs nothing more; anything else, or a re-tinted
+     preset, takes its own line after the package:
+     ```latex
+     \newagent{qwen}[name=Qwen, color=orange!60, mark=\ding{92}]
+     \newagent{claude}[color=<color>]
+     ```
+   - `\newagent{claude}[flag=false]` turns off the margin flags of that agent's
+     applied text (`\claudechange`, `ClaudeChange`). Use it in a paper where
+     most of the text is the agent's: a flag on every paragraph says nothing,
+     and each flag is a margin item that LaTeX has to place.
+   - `grow` is the review layout: 80mm more paper on each side (`grow=<dimen>`
+     for another width), all of it for the notes, around an unchanged text
+     block. Leave it out to keep the page as it is; notes then use the margin
+     the class provides.
+   - `disable` (in place of nothing, as the trailing comment suggests) removes
+     the notes and the growing: the paper as it will be submitted.
+   - `textsize=<size command name>` sets the size of the note text (default
+     `scriptsize`).
+3. Nothing else is needed per author: every agent takes its owner styling from
+   `notecolor-<name>`, so a new author is one more name in the list.
 4. Write a **self-contained `AGENTS.md`** in the paper repo describing the
-   workflow, plus one-line `CLAUDE.md` and `GEMINI.md` files pointing at it:
+   workflow (start from `templates/AGENTS.md`, which `setup.sh` has copied in:
+   replace `sam` and `claude` by the paper's own names and add what is specific
+   to the repo), plus one-line `CLAUDE.md` and `GEMINI.md` files pointing at it:
    ```markdown
    See AGENTS.md for this repository's editing conventions.
    ```
@@ -252,11 +282,11 @@ When asked to set up the todonotes workflow in a new LaTeX project:
    the rules out rather than point to this skill's local path: the
    never-delete-author-notes rule with the `\<agent>Response[<owner>]` example,
    the owner-tagged macros and what they render as, how to add an agent with
-   `\newagent` and an author with the three-line pattern, the mechanical notes
+   `\newagent` and an author through the `authors` list, the mechanical notes
    above, the open-items enumeration habit, and the sync protocol if the repo is
    Overleaf-synced. Write it agent-neutrally, the way this document is written,
    so that whichever agent a collaborator uses can follow it. The skill's repo
-   (https://github.com/postylem/latex-todonotes) may be mentioned as provenance,
+   (git@github.com:postylem/latex-todonotes.git) may be mentioned as provenance,
    never as the place the instructions live.
 
 ## Migrating an existing paper
@@ -282,14 +312,11 @@ Every existing `\claude`, `\Claude`, `\claudeResponse`, `\claudeSuggest`,
 Papers set up before owner tagging have the todonote machinery pasted inline in
 the preamble and an untagged `\claude`. To migrate:
 
-1. Copy in `mytodonotes.sty` and `agentnotes.sty` and replace the inline block
-   with the two `\usepackage` lines, the `\newagent` lines, and the
-   three-line-per-author pattern, converting each author's literal color into a
-   `notecolor-<name>` colorlet
+1. Copy in the packages (`tools/setup.sh`) and replace the inline block with the
+   `\usepackage[authors={...}, agents={...}]{mytodonotes}` line, giving each
+   author's literal color in the list (`sam=red!40`)
 2. Tag the existing agent material by owner. Ownership is usually recoverable
    from history rather than by eye — diff against the commit or tag before a
    given session's work and attribute each suggestion block and response
    accordingly, rather than guessing from the prose
-3. Rebuild and compare the rendering: plain author notes should look unchanged
-   (`mytodonotes.sty` sets `bordercolor = fill`, so only agent notes gain a
-   visible owner-colored frame)
+3. Rebuild and compare the rendering

@@ -1,0 +1,1255 @@
+%% todofloats.sty -- todonotes that work everywhere and break across pages
+%%
+%% WHAT IT DOES
+%%   todonotes draws a note as one unbreakable tikz node, and its margin
+%%   notes with \marginpar, which LaTeX cannot handle inside anything that is
+%%   boxed and moved (floats, minipages, parboxes, tabulars, algorithmic
+%%   inside a floating algorithm): you get "LaTeX Error: Float(s) lost" or
+%%   silently missing notes.  This package loads todonotes, keeps its user
+%%   interface (\todo and all its keys), and replaces the drawing of notes:
+%%
+%%   * INLINE NOTES (\todo[inline]) break across columns and pages.  The note
+%%     text is typeset once, cut into its lines, and the lines are put on the
+%%     page one by one, each with its own piece of the background, so the
+%%     page builder breaks the note like ordinary text (also in two-column
+%%     mode, next to floats and footnotes).  Inside a float, minipage or
+%%     table cell the same lines simply do not get broken.
+%%
+%%   * MARGIN NOTES go through the marginnote package, whose notes are
+%%     zero-size boxes attached to the current line, so they survive in every
+%%     context.  Placement is driven by data from the previous LaTeX run
+%%     (zref-savepos + zref-abspage), so it needs 2-3 runs to converge (a
+%%     warning is issued while positions are still moving):
+%%     - side selection: in two-column mode the note goes to the margin of
+%%       the column its anchor sits in (anchor x compared with the page
+%%       center); in one-column mode the right margin, or, with
+%%       side=alternate, right and left in turn on each page.
+%%     - overlap avoidance: for every (absolute page, margin side) the notes
+%%       are stacked top-down at their anchor line; a note that would overlap
+%%       the previous one is pushed down by the needed amount plus `gap'.  If
+%%       the chain then runs past the bottom of the text area, the lower part
+%%       of the chain is lifted (never above the top of the text area).
+%%     - page breaks: if the notes of one page/side do not fit into the text
+%%       height, they are packed from the top and the ones that do not fit
+%%       are cut between two lines.  The first piece stays next to its
+%%       anchor (every note keeps at least its first two lines there) and
+%%       ends with "continues on the next page"; the rest is put at the top
+%%       of the same margin on the next page(s), under a "continued" header,
+%%       before that page's own notes.  If the last page overflows, extra
+%%       pages are added at the end of the document.
+%%     - the connector line (todonotes' tikz overlay from the text anchor to
+%%       the note) follows the first piece wherever it is placed.
+%%
+%%   Colors that are open at a break stay right on both sides of it (the text
+%%   of a note that is cut in a margin uses a color stack of its own), and a
+%%   note is never cut between two lines that share a hyperlink.
+%%
+%% USAGE
+%%   \usepackage[<options>]{todofloats}     % instead of \usepackage[...]{todonotes}
+%%   Every option that is not listed below is passed to todonotes, so
+%%   textsize=..., color=..., disable, textwidth=..., ... keep working.
+%%   With `disable' (or obeyFinal/final) the package is a complete no-op.
+%%   Load it anywhere in the preamble; hyperref and geometry may be loaded
+%%   before or after it (the text-area geometry is read at \begin{document}).
+%%
+%% OPTIONS
+%%   side=auto|left|right|alternate
+%%                          margin to use (default auto, see above).  With
+%%                          alternate, the notes of each page of one-column
+%%                          text take turns: right, left, right, ..., in the
+%%                          order of the notes, which halves the stack in each
+%%                          margin; two-column text is placed as with auto.
+%%   leftmarginsep=<dimen>  space between the text block and a note in the
+%%                          left margin (default \marginparsep), e.g. to clear
+%%                          line numbers printed there; `grow' narrows the
+%%                          notes to fit it
+%%   grow[=<dimen>]         review layout: widen the paper by <dimen> on each
+%%                          side (80mm if no value is given) and give all of
+%%                          each side margin to the notes.  The text block does
+%%                          not move or change, so every line and page break is
+%%                          the same as without the option.  Off by default.
+%%   gap=<dimen>            minimal vertical distance between two notes (4pt)
+%%   sep=<dimen>            padding between the note text and the edge of its
+%%                          background (3pt)
+%%   inlineskip=<dimen>     space above and below an inline note (3pt)
+%%   debug                  draw a thin red frame around every margin note
+%%                          and print "id/page/side" (also \todofloatsdebug);
+%%                          write the unit heights of every note to the log
+%%
+%% HOOKS FOR THE DOCUMENT
+%%   \todofloatsmark{<material>}  used inside a note: <material> (expanded
+%%        now, robust commands stay) identifies the note in the header of its
+%%        continuation pieces, e.g. its number
+%%   \todofloatscontinued         text after the mark in that header
+%%   \todofloatscontinues         text at the end of a piece that is continued
+%%   \iftodofloatsinnote          true while the text of a note is typeset
+%%   \todofloatsflag{<material>}  a small unnumbered margin item without
+%%        background or connector at the current line (also in math); it takes
+%%        part in the stacking, so it never overlaps a note
+%%
+%% WHAT A NOTE LOOKS LIKE
+%%   A rectangle in the todonotes background color (color=, backgroundcolor=)
+%%   with `sep' padding, text in textcolor= and size=, set ragged right.
+%%   There is no border and no rounded corners (bordercolor= and the tikz
+%%   style `notestyle' are not used); author= is put in front of the text.
+%%
+%% LIMITATIONS
+%%   * The first run has no position data: margin notes are placed at
+%%     approximate horizontal positions, may overlap, and are not cut.  Run
+%%     LaTeX again (2-3 runs).  The layout is final two runs after the note
+%%     contents stop changing, so a note containing \cref or \cite needs the
+%%     usual extra runs (bibtex, cross-references) on top; the warning tells
+%%     you when to stop.
+%%   * Tests: tests/todofloats/check.sh (compiles two test documents until
+%%     no rerun is requested, checks the logs, verifies the layout from the
+%%     aux files and the text of the PDFs).
+%%   * A note inside a \caption is typeset twice by LaTeX when the caption
+%%     is longer than one line, so it counts as two ids; the first copy is
+%%     only measured, never placed, and asks for no rerun.
+%%   * An inline note in restricted horizontal mode (inside an \hbox or an
+%%     l/c/r table cell), in math, or with the key noinlinepar, is one
+%%     unbreakable box.
+%%   * A margin note is cut only between lines; a single line (or display)
+%%     that is higher than the text area overflows at the bottom (warning).
+%%   * No \footnote inside a note.
+%%   * `grow' changes the page size at \begin{document}; a later \newgeometry
+%%     undoes it.
+%%   * pdfTeX (needs \pdfsavepos; the color stack and the hyperlink guard
+%%     use \pdfcolorstackinit and \pdfstartlink and are skipped without them).
+%% ---------------------------------------------------------------------------
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{todofloats}[2026/11/11 v0.4 breakable todonotes, margin notes inside floats]
+
+\RequirePackage{kvoptions}
+\SetupKeyvalOptions{family=todofloats,prefix=tdf@opt@}
+\DeclareStringOption[auto]{side}
+\DeclareStringOption[4pt]{gap}
+\DeclareStringOption[3pt]{sep}
+\DeclareStringOption[3pt]{inlineskip}
+\DeclareStringOption[0pt]{grow}[80mm]
+\DeclareStringOption{leftmarginsep}
+\DeclareBoolOption{debug}
+\DeclareDefaultOption{\PassOptionsToPackage{\CurrentOption}{todonotes}}
+\ProcessKeyvalOptions{todofloats}
+
+\RequirePackage{todonotes}
+
+% Public switch (works with or without the `disable' option).
+\newcommand*\todofloatsdebug{\global\tdf@opt@debugtrue}
+
+% Document hooks (no-ops with `disable').
+\newcommand\todofloatsmark[1]{}
+\newcommand\todofloatscontinued{\textit{continued}}
+\newcommand\todofloatscontinues{\textit{continues on the next page}}
+\newcommand\todofloatsflag[1]{}
+\newif\iftodofloatsinnote   % true while the text of a note is being typeset
+
+% Aux-file records written by this package (harmless no-ops if the package
+% is later loaded with `disable', or not at all).
+\providecommand*\tdf@aux@geometry[1]{}
+\providecommand*\tdf@aux@maxid[1]{}
+\providecommand*\tdf@aux@profile[2]{}
+
+\if@todonotes@disabled
+  \expandafter\endinput
+\fi
+
+\RequirePackage{zref-base}
+\RequirePackage{zref-savepos}
+\RequirePackage{zref-abspage}
+\@ifpackageloaded{marginnote}{}{\PassOptionsToPackage{quiet}{marginnote}}
+\RequirePackage{marginnote}
+\RequirePackage{expl3}
+
+%% ---------------------------------------------------------------------------
+%% Aux-file data.  Each margin note gets a unique id.  Per note (all values
+%% in sp):
+%%   tdf@a@<id>  zref label, the anchor in the text:  posx, posy, abspage
+%%   tdf@n@<id>  zref label, the first piece of the note: posx, posy (left
+%%               edge / baseline of the box as actually placed), abspage,
+%%               tdfht/tdfdp (box height above/below the baseline), tdfwd
+%%               (box width), tdfoff (offset that was applied), tdftwocol
+%%               (1 if two-column mode)
+%%   tdf@c@<id>@<k>  zref label, continuation piece k>=2: posx, posy (lower
+%%               left corner), abspage, tdfht (height), tdfwd (width)
+%%   \tdf@aux@profile{<id>}{<e1>,<e2>,...}  the heights of the units the text
+%%               of the note can be cut into (a unit is one or more lines)
+\zref@newlist{tdfanchor}
+\zref@addprops{tdfanchor}{posx,posy,abspage}
+\zref@newprop{tdfht}[0]{0}
+\zref@newprop{tdfdp}[0]{0}
+\zref@newprop{tdfwd}[0]{0}
+\zref@newprop{tdfoff}[0]{0}
+\zref@newprop{tdftwocol}[0]{0}
+\zref@newlist{tdfnote}
+\zref@addprops{tdfnote}{posx,posy,abspage,tdfht,tdfdp,tdfwd,tdfoff,tdftwocol}
+\zref@newlist{tdfcont}
+\zref@addprops{tdfcont}{posx,posy,abspage,tdfht,tdfwd}
+
+\newcounter{tdfnote}
+\newbox\tdf@notebox
+\newbox\tdf@raw        % the note text as typeset
+\newbox\tdf@canon      % the same, as a list of units with a penalty between them
+\newbox\tdf@acc
+\newbox\tdf@piece
+\newbox\tdf@deco
+\newbox\tdf@tmpbox
+\newdimen\tdf@W        % width of the note text
+\newdimen\tdf@Wouter   % width of the note background
+\newdimen\tdf@sepdim
+\newdimen\tdf@headsep  \tdf@headsep=2pt   % between a continuation header/footer and the text
+\newdimen\tdf@strutht
+\newdimen\tdf@strutdp
+\newcount\tdf@nunits
+\newcount\tdf@k
+\newmarks\tdf@linkmarks
+\newif\iftdf@changed
+\newif\iftdf@linkopen
+\newif\iftdf@usestack
+\newif\iftdf@boxed
+\newif\iftdf@nofill
+\newdimen\tdf@growdim
+\newdimen\tdf@lsep  % space between the text block and a left-margin note
+
+\renewcommand\todofloatsmark[1]{\protected@xdef\tdf@mark{#1}}
+\gdef\tdf@mark{}
+\gdef\tdf@pending{}
+
+\ExplSyntaxOn
+
+\int_new:N  \g_tdf_maxid_int          % highest id seen in the previous run
+\int_new:N  \g_tdf_maxpage_int        % last page with a margin note
+\int_new:N  \g_tdf_ceiling_int        % top of text area   (sp, from page bottom)
+\int_new:N  \g_tdf_floor_int          % bottom of text area (sp)
+\int_new:N  \g_tdf_pagecentre_int     % \paperwidth/2 (sp)
+\int_new:N  \g_tdf_sep_int            % padding (sp)
+\int_new:N  \g_tdf_head_int           % height of a continuation header (sp)
+\int_new:N  \g_tdf_foot_int           % height of a "continues" footer (sp)
+\int_new:N  \l_tdf_gap_int
+\int_new:N  \l_tdf_t_int
+\int_new:N  \l_tdf_b_int
+\int_new:N  \l_tdf_lim_int
+\int_new:N  \l_tdf_prevbot_int
+\int_new:N  \l_tdf_page_int
+\int_new:N  \l_tdf_cur_int            % top of the free part of the margin
+\int_new:N  \l_tdf_res_int            % space reserved for notes still to come
+\int_new:N  \l_tdf_need_int
+\int_new:N  \l_tdf_S_int
+\int_new:N  \l_tdf_h_int
+\int_new:N  \l_tdf_stub_int
+\int_new:N  \l_tdf_sum_int
+\int_new:N  \l_tdf_n_int
+\int_new:N  \l_tdf_idx_int
+\int_new:N  \l_tdf_cnt_int
+\int_new:N  \l_tdf_rest_int
+\int_new:N  \l_tdf_first_int
+\int_new:N  \l_tdf_two_int
+\bool_new:N \l_tdf_first_bool
+\bool_new:N \l_tdf_defer_bool
+\bool_new:N \g_tdf_rerun_bool         % the layout used stale data this run
+\prop_new:N \g_tdf_side_prop          % id -> l | r      (decided for this run)
+\prop_new:N \g_tdf_offset_prop        % id -> offset (sp, positive = down)
+\prop_new:N \g_tdf_anchorx_prop       % id -> anchor x (sp) from previous run
+\prop_new:N \g_tdf_page_prop          % id -> absolute page from previous run
+\prop_new:N \g_tdf_top_prop           % id -> natural top of note (sp)
+\prop_new:N \g_tdf_target_prop        % id -> wanted top of note (sp)
+\prop_new:N \g_tdf_h_prop             % id -> total height of the whole note (sp)
+\prop_new:N \g_tdf_split_prop         % id -> text heights of pieces 1..n-1 (clist, sp)
+\prop_new:N \g_tdf_cont_prop          % id -> <page>/<top> of pieces 2..n (clist)
+\prop_new:N \l_tdf_pos_prop           % id -> top after stacking (sp)
+\seq_new:N  \l_tdf_grp_seq
+\seq_new:N  \l_tdf_rev_seq
+\seq_new:N  \l_tdf_carry_seq          % items {id}{first unit}: text carried to this page
+\seq_new:N  \l_tdf_newcarry_seq
+\tl_new:N   \l_tdf_key_tl
+\tl_new:N   \l_tdf_side_tl
+
+% --- side=alternate in one-column text: the notes of a page take turns,
+%     right first, in the order they are read (by id); one counter per page
+\cs_new_protected:Npn \tdf_take_turn:n #1
+  {
+    \tl_set:Nx \l_tmpa_tl
+      { g_tdf_turn_ \zref@extractdefault { tdf@n@#1 } { abspage } { 1 } _int }
+    \int_if_exist:cF { \l_tmpa_tl } { \int_new:c { \l_tmpa_tl } }
+    \int_if_odd:nTF { \int_use:c { \l_tmpa_tl } }
+      { \tl_set:Nn \l_tdf_side_tl { l } }
+      { \tl_set:Nn \l_tdf_side_tl { r } }
+    \int_gincr:c { \l_tmpa_tl }
+  }
+
+% --- read one note's data from the aux and file it into its page/side group
+\cs_new_protected:Npn \tdf_read_note:n #1
+  {
+    \zref@ifrefundefined { tdf@n@#1 } { }
+      {
+        % side for this run
+        \str_case_e:nnF { \tdf@opt@side }
+          {
+            { left }  { \tl_set:Nn \l_tdf_side_tl { l } }
+            { right } { \tl_set:Nn \l_tdf_side_tl { r } }
+          }
+          {
+            \int_compare:nNnTF { \zref@extractdefault { tdf@n@#1 } { tdftwocol } { 0 } } = { 1 }
+              {
+                \int_compare:nNnTF
+                  { \zref@extractdefault { tdf@a@#1 } { posx } { \g_tdf_pagecentre_int } }
+                  < { \g_tdf_pagecentre_int }
+                  { \tl_set:Nn \l_tdf_side_tl { l } }
+                  { \tl_set:Nn \l_tdf_side_tl { r } }
+              }
+              {
+                \str_if_eq:eeTF { \tdf@opt@side } { alternate }
+                  { \tdf_take_turn:n {#1} }
+                  { \tl_set:Nn \l_tdf_side_tl { r } }
+              }
+          }
+        \prop_gput:Nnx \g_tdf_side_prop {#1} { \l_tdf_side_tl }
+        \prop_gput:Nnx \g_tdf_anchorx_prop {#1}
+          { \zref@extractdefault { tdf@a@#1 } { posx } { -1 } }
+        \prop_gput:Nnx \g_tdf_page_prop {#1}
+          { \zref@extractdefault { tdf@n@#1 } { abspage } { 1 } }
+        \int_gset:Nn \g_tdf_maxpage_int
+          { \int_max:nn { \g_tdf_maxpage_int } { \prop_item:Nn \g_tdf_page_prop {#1} } }
+        % geometry of the note: natural top (offset 0), wanted top, height
+        \prop_gput:Nnx \g_tdf_top_prop {#1}
+          {
+            \int_eval:n
+              {
+                \zref@extractdefault { tdf@n@#1 } { posy } { 0 }
+                + \zref@extractdefault { tdf@n@#1 } { tdfoff } { 0 }
+                + \zref@extractdefault { tdf@n@#1 } { tdfht } { 0 }
+              }
+          }
+        \prop_gput:Nnx \g_tdf_target_prop {#1}
+          {
+            \zref@ifrefundefined { tdf@a@#1 }
+              { \prop_item:Nn \g_tdf_top_prop {#1} }
+              {
+                \int_eval:n
+                  {
+                    \zref@extractdefault { tdf@a@#1 } { posy } { 0 }
+                    + \zref@extractdefault { tdf@n@#1 } { tdfht } { 0 }
+                  }
+              }
+          }
+        % the units of the text; without a profile the note is one unit
+        \cs_if_exist:cF { tdf@prof@#1 }
+          {
+            \cs_gset:cpx { tdf@prof@#1 }
+              {
+                \int_eval:n
+                  {
+                    \zref@extractdefault { tdf@n@#1 } { tdfht } { 0 }
+                    + \zref@extractdefault { tdf@n@#1 } { tdfdp } { 0 }
+                    - 2 * \g_tdf_sep_int
+                  }
+              }
+          }
+        \int_zero:N \l_tdf_sum_int
+        \clist_map_inline:cn { tdf@prof@#1 } { \int_add:Nn \l_tdf_sum_int {##1} }
+        \prop_gput:Nnx \g_tdf_h_prop {#1}
+          { \int_eval:n { \l_tdf_sum_int + 2 * \g_tdf_sep_int } }
+        % group key
+        \tl_set:Nx \l_tdf_key_tl { \prop_item:Nn \g_tdf_page_prop {#1} - \l_tdf_side_tl }
+        \seq_if_exist:cF { g_tdf_grp_ \l_tdf_key_tl _seq }
+          { \seq_new:c { g_tdf_grp_ \l_tdf_key_tl _seq } }
+        \seq_gput_right:cn { g_tdf_grp_ \l_tdf_key_tl _seq } {#1}
+      }
+  }
+
+% --- the units of note #1 from unit #2 on: their number (\l_tdf_cnt_int counts
+%     all units of the note), total height, and the height of the first one and
+%     of the first two
+\cs_new_protected:Npn \tdf_rest:nn #1#2
+  {
+    \int_zero:N \l_tdf_cnt_int
+    \int_zero:N \l_tdf_rest_int
+    \int_zero:N \l_tdf_first_int
+    \int_zero:N \l_tdf_two_int
+    \clist_map_inline:cn { tdf@prof@#1 }
+      {
+        \int_incr:N \l_tdf_cnt_int
+        \int_compare:nNnF { \l_tdf_cnt_int } < {#2}
+          {
+            \int_add:Nn \l_tdf_rest_int {##1}
+            \int_compare:nNnT { \l_tdf_cnt_int } = {#2}
+              { \int_set:Nn \l_tdf_first_int {##1} }
+            \int_compare:nNnT { \l_tdf_cnt_int } < { #2 + 2 }
+              { \int_add:Nn \l_tdf_two_int {##1} }
+          }
+      }
+  }
+
+% --- how many units of note #1, from unit #2 on, fit into the height #3:
+%     \l_tdf_n_int units of total height \l_tdf_sum_int
+\cs_new_protected:Npn \tdf_take:nnn #1#2#3
+  {
+    \int_zero:N \l_tdf_n_int
+    \int_zero:N \l_tdf_sum_int
+    \int_zero:N \l_tdf_idx_int
+    \clist_map_inline:cn { tdf@prof@#1 }
+      {
+        \int_incr:N \l_tdf_idx_int
+        \int_compare:nNnF { \l_tdf_idx_int } < {#2}
+          {
+            \int_compare:nNnTF { \l_tdf_sum_int + ##1 } > {#3}
+              { \clist_map_break: }
+              {
+                \int_add:Nn \l_tdf_sum_int {##1}
+                \int_incr:N \l_tdf_n_int
+              }
+          }
+      }
+  }
+
+% --- the least a note may show next to its anchor when it is cut: its first
+%     two lines and the "continues" footer
+\cs_new_protected:Npn \tdf_stub:n #1
+  {
+    \tdf_rest:nn {#1} { 1 }
+    \int_set:Nn \l_tdf_stub_int { \prop_item:Nn \g_tdf_h_prop {#1} }
+    \int_compare:nNnT { \l_tdf_cnt_int } > { 2 }
+      {
+        \int_set:Nn \l_tdf_stub_int
+          {
+            \int_min:nn { \l_tdf_stub_int }
+              { 2 * \g_tdf_sep_int + \l_tdf_two_int + \g_tdf_foot_int }
+          }
+      }
+  }
+
+\cs_new_protected:Npn \tdf_add_to_prop:Nnn #1#2#3
+  {
+    \prop_get:NnNTF #1 {#2} \l_tmpa_tl
+      { \prop_gput:Nnx #1 {#2} { \l_tmpa_tl , #3 } }
+      { \prop_gput:Nnx #1 {#2} {#3} }
+  }
+
+% --- put the rest of note #2 (from unit #3 on) at the top of the margin of
+%     page #1, as much of it as fits
+\cs_new_protected:Npn \tdf_place_carry:nnn #1#2#3
+  {
+    \tdf_rest:nn {#2} {#3}
+    \bool_if:NTF \l_tdf_defer_bool
+      { \seq_put_right:Nn \l_tdf_newcarry_seq { {#2} {#3} } }
+      {
+        \int_set:Nn \l_tdf_S_int
+          { \l_tdf_cur_int - \g_tdf_floor_int - \l_tdf_res_int }
+        \int_set:Nn \l_tdf_h_int
+          { 2 * \g_tdf_sep_int + \g_tdf_head_int + \l_tdf_rest_int }
+        \int_compare:nNnTF { \l_tdf_h_int } > { \l_tdf_S_int }
+          {
+            \tdf_take:nnn {#2} {#3}
+              {
+                \l_tdf_S_int - 2 * \g_tdf_sep_int
+                - \g_tdf_head_int - \g_tdf_foot_int
+              }
+            % an empty margin takes at least one unit
+            \int_compare:nNnT { \l_tdf_n_int } = { 0 }
+              {
+                \bool_lazy_and:nnT
+                  { \int_compare_p:nNn { \l_tdf_cur_int } = { \g_tdf_ceiling_int } }
+                  { \seq_if_empty_p:N \l_tdf_grp_seq }
+                  {
+                    \int_set:Nn \l_tdf_n_int { 1 }
+                    \int_set_eq:NN \l_tdf_sum_int \l_tdf_first_int
+                  }
+              }
+            \int_compare:nNnTF { \l_tdf_n_int } = { 0 }
+              {
+                \bool_set_true:N \l_tdf_defer_bool
+                \seq_put_right:Nn \l_tdf_newcarry_seq { {#2} {#3} }
+              }
+              {
+                \tdf_add_to_prop:Nnn \g_tdf_cont_prop {#2}
+                  { #1 / \int_use:N \l_tdf_cur_int }
+                \int_compare:nNnTF { #3 + \l_tdf_n_int } > { \l_tdf_cnt_int }
+                  { \int_sub:Nn \l_tdf_cur_int { \l_tdf_h_int + \l_tdf_gap_int } }
+                  {
+                    \tdf_add_to_prop:Nnn \g_tdf_split_prop {#2}
+                      { \int_use:N \l_tdf_sum_int }
+                    \int_sub:Nn \l_tdf_cur_int
+                      {
+                        2 * \g_tdf_sep_int + \g_tdf_head_int + \l_tdf_sum_int
+                        + \g_tdf_foot_int + \l_tdf_gap_int
+                      }
+                    \seq_put_right:Nx \l_tdf_newcarry_seq
+                      { {#2} { \int_eval:n { #3 + \l_tdf_n_int } } }
+                  }
+              }
+          }
+          {
+            \tdf_add_to_prop:Nnn \g_tdf_cont_prop {#2}
+              { #1 / \int_use:N \l_tdf_cur_int }
+            \int_sub:Nn \l_tdf_cur_int { \l_tdf_h_int + \l_tdf_gap_int }
+          }
+      }
+  }
+
+% --- the notes of a page/side fit below \l_tdf_cur_int: put each at its
+%     anchor line, then resolve overlaps
+\cs_new_protected:Npn \tdf_stack_group:
+  {
+    % pass 1 (top-down): push a note down when it would overlap its predecessor
+    \bool_set_true:N \l_tdf_first_bool
+    \seq_map_inline:Nn \l_tdf_grp_seq
+      {
+        \int_set:Nn \l_tdf_t_int { \prop_item:Nn \g_tdf_target_prop {##1} }
+        \bool_if:NTF \l_tdf_first_bool
+          { \bool_set_false:N \l_tdf_first_bool }
+          {
+            \int_set:Nn \l_tdf_t_int
+              { \int_min:nn { \l_tdf_t_int } { \l_tdf_prevbot_int - \l_tdf_gap_int } }
+          }
+        \prop_put:Nnx \l_tdf_pos_prop {##1} { \int_use:N \l_tdf_t_int }
+        \int_set:Nn \l_tdf_prevbot_int
+          { \l_tdf_t_int - \prop_item:Nn \g_tdf_h_prop {##1} }
+      }
+    % pass 2 (bottom-up): lift what runs past the bottom of the text area
+    \int_set:Nn \l_tdf_lim_int { \g_tdf_floor_int }
+    \seq_set_eq:NN \l_tdf_rev_seq \l_tdf_grp_seq
+    \seq_reverse:N \l_tdf_rev_seq
+    \seq_map_inline:Nn \l_tdf_rev_seq
+      {
+        \int_set:Nn \l_tdf_t_int { \prop_item:Nn \l_tdf_pos_prop {##1} }
+        \int_set:Nn \l_tdf_b_int
+          { \l_tdf_t_int - \prop_item:Nn \g_tdf_h_prop {##1} }
+        \int_compare:nNnT { \l_tdf_b_int } < { \l_tdf_lim_int }
+          {
+            \int_add:Nn \l_tdf_t_int { \l_tdf_lim_int - \l_tdf_b_int }
+            \prop_put:Nnx \l_tdf_pos_prop {##1} { \int_use:N \l_tdf_t_int }
+          }
+        \int_set:Nn \l_tdf_lim_int { \l_tdf_t_int + \l_tdf_gap_int }
+      }
+    % pass 3 (top-down): never above the free part of the margin
+    \int_set:Nn \l_tdf_prevbot_int { \l_tdf_cur_int + \l_tdf_gap_int }
+    \seq_map_inline:Nn \l_tdf_grp_seq
+      {
+        \int_set:Nn \l_tdf_t_int
+          {
+            \int_min:nn { \prop_item:Nn \l_tdf_pos_prop {##1} }
+                        { \l_tdf_prevbot_int - \l_tdf_gap_int }
+          }
+        \prop_put:Nnx \l_tdf_pos_prop {##1} { \int_use:N \l_tdf_t_int }
+        \int_set:Nn \l_tdf_prevbot_int
+          { \l_tdf_t_int - \prop_item:Nn \g_tdf_h_prop {##1} }
+      }
+    \int_set:Nn \l_tdf_cur_int { \l_tdf_prevbot_int - \l_tdf_gap_int }
+  }
+
+% --- the notes of a page/side do not fit: pack them from the top; a note
+%     that does not fit (leaving room for the first lines of the later ones)
+%     is cut, and the rest is carried to the next page
+\cs_new_protected:Npn \tdf_pack_group:
+  {
+    \seq_map_inline:Nn \l_tdf_grp_seq
+      {
+        \tdf_stub:n {##1}
+        \int_sub:Nn \l_tdf_res_int { \l_tdf_stub_int + \l_tdf_gap_int }
+        \int_set:Nn \l_tdf_S_int
+          { \l_tdf_cur_int - \g_tdf_floor_int - \l_tdf_res_int }
+        \prop_put:Nnx \l_tdf_pos_prop {##1} { \int_use:N \l_tdf_cur_int }
+        \int_set:Nn \l_tdf_h_int { \prop_item:Nn \g_tdf_h_prop {##1} }
+        \int_compare:nNnT { \l_tdf_h_int } > { \l_tdf_S_int }
+          {
+            \tdf_take:nnn {##1} { 1 }
+              { \l_tdf_S_int - 2 * \g_tdf_sep_int - \g_tdf_foot_int }
+            \tdf_rest:nn {##1} { 1 }
+            \int_compare:nNnT { \l_tdf_n_int } = { 0 }
+              {
+                \int_set:Nn \l_tdf_n_int { 1 }
+                \int_set_eq:NN \l_tdf_sum_int \l_tdf_first_int
+              }
+            \int_compare:nNnT { \l_tdf_n_int } < { \l_tdf_cnt_int }
+              {
+                \tdf_add_to_prop:Nnn \g_tdf_split_prop {##1}
+                  { \int_use:N \l_tdf_sum_int }
+                \seq_put_right:Nx \l_tdf_newcarry_seq
+                  { {##1} { \int_eval:n { \l_tdf_n_int + 1 } } }
+                \int_set:Nn \l_tdf_h_int
+                  { 2 * \g_tdf_sep_int + \l_tdf_sum_int + \g_tdf_foot_int }
+              }
+          }
+        \int_sub:Nn \l_tdf_cur_int { \l_tdf_h_int + \l_tdf_gap_int }
+      }
+  }
+
+% --- one page/side: the text carried over from the previous page first, then
+%     the notes anchored on this page
+\cs_new_protected:Npn \tdf_layout_page:nn #1#2
+  {
+    \seq_clear:N \l_tdf_grp_seq
+    \seq_if_exist:cT { g_tdf_grp_#1-#2_seq }
+      { \seq_set_eq:Nc \l_tdf_grp_seq { g_tdf_grp_#1-#2_seq } }
+    \bool_lazy_and:nnF
+      { \seq_if_empty_p:N \l_tdf_grp_seq }
+      { \seq_if_empty_p:N \l_tdf_carry_seq }
+      {
+        % top to bottom by wanted position
+        \seq_sort:Nn \l_tdf_grp_seq
+          {
+            \int_compare:nNnTF
+              { \prop_item:Nn \g_tdf_target_prop {##1} }
+              < { \prop_item:Nn \g_tdf_target_prop {##2} }
+              { \sort_return_swapped: }
+              { \sort_return_same: }
+          }
+        \int_set_eq:NN \l_tdf_cur_int \g_tdf_ceiling_int
+        \int_zero:N \l_tdf_res_int
+        \int_set:Nn \l_tdf_need_int { - \l_tdf_gap_int }
+        \seq_map_inline:Nn \l_tdf_grp_seq
+          {
+            \tdf_stub:n {##1}
+            \int_add:Nn \l_tdf_res_int { \l_tdf_stub_int + \l_tdf_gap_int }
+            \int_add:Nn \l_tdf_need_int
+              { \prop_item:Nn \g_tdf_h_prop {##1} + \l_tdf_gap_int }
+          }
+        \seq_clear:N \l_tdf_newcarry_seq
+        \bool_set_false:N \l_tdf_defer_bool
+        \seq_map_inline:Nn \l_tdf_carry_seq
+          { \tdf_place_carry:nnn {#1} ##1 }
+        \seq_if_empty:NF \l_tdf_grp_seq
+          {
+            \int_compare:nNnTF
+              { \l_tdf_need_int } > { \l_tdf_cur_int - \g_tdf_floor_int }
+              { \tdf_pack_group: }
+              { \tdf_stack_group: }
+            % offsets relative to the natural (offset 0) position
+            \seq_map_inline:Nn \l_tdf_grp_seq
+              {
+                \prop_gput:Nnx \g_tdf_offset_prop {##1}
+                  {
+                    \int_eval:n
+                      {
+                        \prop_item:Nn \g_tdf_top_prop {##1}
+                        - \prop_item:Nn \l_tdf_pos_prop {##1}
+                      }
+                  }
+                \int_compare:nNnF
+                  { \prop_item:Nn \g_tdf_offset_prop {##1} }
+                  = { \zref@extractdefault { tdf@n@##1 } { tdfoff } { 0 } }
+                  { \bool_gset_true:N \g_tdf_rerun_bool }
+              }
+          }
+        \int_compare:nNnT
+          { \l_tdf_cur_int + \l_tdf_gap_int } < { \g_tdf_floor_int }
+          { \msg_warning:nnn { todofloats } { overflow } { #1-#2 } }
+        \seq_set_eq:NN \l_tdf_carry_seq \l_tdf_newcarry_seq
+      }
+  }
+
+\cs_generate_variant:Nn \tdf_layout_page:nn { xn }
+
+\cs_new_protected:Npn \tdf_layout:
+  {
+    \int_set:Nn \l_tdf_gap_int { \dimexpr \tdf@opt@gap \relax }
+    \int_step_inline:nn { \g_tdf_maxid_int } { \tdf_read_note:n {##1} }
+    \clist_map_inline:nn { l , r }
+      {
+        \seq_clear:N \l_tdf_carry_seq
+        \int_set:Nn \l_tdf_page_int { 1 }
+        \bool_while_do:nn
+          {
+            \bool_lazy_or_p:nn
+              { \int_compare_p:nNn { \l_tdf_page_int } < { \g_tdf_maxpage_int + 1 } }
+              {
+                \bool_lazy_and_p:nn
+                  { ! \seq_if_empty_p:N \l_tdf_carry_seq }
+                  { \int_compare_p:nNn { \l_tdf_page_int } < { \g_tdf_maxpage_int + 40 } }
+              }
+          }
+          {
+            \tdf_layout_page:xn { \int_use:N \l_tdf_page_int } {##1}
+            \int_incr:N \l_tdf_page_int
+          }
+      }
+  }
+
+% --- per-note lookup at typesetting time; defines \tdf@side, \tdf@offset,
+%     \tdf@currxpos, \tdf@currpage, \tdf@splits and \tdf@conts (the last two
+%     with a trailing comma when not empty) for the LaTeX2e layer below
+\cs_new_protected:Npn \tdf_prepare:n #1
+  {
+    \prop_get:NnNTF \g_tdf_side_prop {#1} \l_tdf_side_tl
+      { \tl_set_eq:NN \tdf@side \l_tdf_side_tl }
+      {
+        % No data from the previous run.  This asks for no rerun by itself: a
+        % note that reaches the page writes new labels, and the check at the
+        % end of the document sees them.  A copy that never reaches the page
+        % (the measuring pass of a caption longer than one line) writes none,
+        % and would otherwise ask for a rerun on every run.
+        \str_case_e:nnF { \tdf@opt@side }
+          {
+            { left }  { \tl_set:Nn \tdf@side { l } }
+            { right } { \tl_set:Nn \tdf@side { r } }
+          }
+          {
+            \legacy_if:nTF { @twocolumn }
+              {
+                \legacy_if:nTF { @firstcolumn }
+                  { \tl_set:Nn \tdf@side { l } }
+                  { \tl_set:Nn \tdf@side { r } }
+              }
+              { \tl_set:Nn \tdf@side { r } }
+          }
+      }
+    \prop_get:NnNTF \g_tdf_offset_prop {#1} \l_tmpa_tl
+      { \tl_set:Nx \tdf@offset { \l_tmpa_tl sp } }
+      { \tl_set:Nn \tdf@offset { 0pt } }
+    \prop_get:NnNTF \g_tdf_anchorx_prop {#1} \l_tmpa_tl
+      {
+        \int_compare:nNnTF { \l_tmpa_tl } < { 0 }
+          { \tdf_estimate_x: }
+          { \tl_set:Nx \tdf@currxpos { \l_tmpa_tl sp } }
+      }
+      { \tdf_estimate_x: }
+    \prop_get:NnNTF \g_tdf_page_prop {#1} \l_tmpa_tl
+      { \tl_set_eq:NN \tdf@currpage \l_tmpa_tl }
+      { \tl_set:Nn \tdf@currpage { 1 } }
+    \prop_get:NnNTF \g_tdf_split_prop {#1} \l_tmpa_tl
+      { \tl_set:Nx \tdf@splits { \l_tmpa_tl , } }
+      { \tl_clear:N \tdf@splits }
+    \prop_get:NnNTF \g_tdf_cont_prop {#1} \l_tmpa_tl
+      { \tl_set:Nx \tdf@conts { \l_tmpa_tl , } }
+      { \tl_clear:N \tdf@conts }
+  }
+
+% first run: no anchor x yet; assume the anchor sits at the left edge of its
+% column so that the note lands roughly in the margin
+\cs_new_protected:Npn \tdf_estimate_x:
+  {
+    \tl_set:Nx \tdf@currxpos
+      {
+        \dim_eval:n
+          {
+            1in + \oddsidemargin
+            + \legacy_if:nTF { @twocolumn }
+                { \legacy_if:nTF { @firstcolumn } { 0pt } { \columnwidth + \columnsep } }
+                { 0pt }
+          }
+      }
+  }
+
+\cs_new_eq:NN \tdf@layout \tdf_layout:
+\cs_generate_variant:Nn \tdf_prepare:n { x }
+\cs_new_eq:NN \tdf@prepare \tdf_prepare:x
+\cs_new_protected:Npn \tdf@setrerun { \bool_gset_true:N \g_tdf_rerun_bool }
+\cs_new:Npn \tdf@ifrerun { \bool_if:NTF \g_tdf_rerun_bool }
+\cs_new_protected:Npn \tdf@setmaxid #1 { \int_gset:Nn \g_tdf_maxid_int {#1} }
+\cs_new_protected:Npn \tdf@setgeometry
+  {
+    \int_gset:Nn \g_tdf_pagecentre_int { \dimexpr \paperwidth / 2 \relax }
+    \int_gset:Nn \g_tdf_ceiling_int
+      {
+        \dimexpr
+          \paperheight - \tdf@vorigin - \voffset - \topmargin
+          - \headheight - \headsep
+        \relax
+      }
+    \int_gset:Nn \g_tdf_floor_int { \g_tdf_ceiling_int - \textheight }
+    \int_gset:Nn \g_tdf_sep_int { \tdf@sepdim }
+    \int_gset:Nn \g_tdf_head_int
+      { \dimexpr \tdf@strutht + \tdf@strutdp + \tdf@headsep \relax }
+    \int_gset_eq:NN \g_tdf_foot_int \g_tdf_head_int
+  }
+\cs_new:Npn \tdf@ceiling { \int_use:N \g_tdf_ceiling_int }
+\cs_new:Npn \tdf@floor { \int_use:N \g_tdf_floor_int }
+
+\msg_new:nnn { todofloats } { overflow }
+  { The~margin~notes~on~page/side~#1~do~not~fit~into~the~text~height;~they~overflow~at~the~bottom. }
+
+\ExplSyntaxOff
+
+% pdfTeX puts TeX's origin \pdfhorigin/\pdfvorigin from the page edges.
+\ifdefined\pdfhorigin
+  \def\tdf@horigin{\pdfhorigin}\def\tdf@vorigin{\pdfvorigin}
+\else
+  \def\tdf@horigin{1in}\def\tdf@vorigin{1in}
+\fi
+
+% The review layout (option grow): more paper on both sides of an unchanged
+% text block.  Done here, after geometry has set the page up, so it works with
+% any class and with or without geometry.
+\def\tdf@alternate{alternate}
+\def\tdf@setlsep{%
+  \ifx\tdf@opt@leftmarginsep\@empty \tdf@lsep=\marginparsep
+  \else \tdf@lsep=\dimexpr\tdf@opt@leftmarginsep\relax \fi}
+\def\tdf@grow{%
+  \tdf@growdim=\dimexpr\tdf@opt@grow\relax
+  \ifdim\tdf@growdim>\z@
+    \advance\paperwidth 2\tdf@growdim
+    \advance\oddsidemargin \tdf@growdim
+    \advance\evensidemargin \tdf@growdim
+    \marginparsep=3mm
+    \tdf@setlsep
+    % the narrower of the two side margins, less a gap on either side of the
+    % note; on the left, the gap next to the text is \tdf@lsep
+    \dimen@=\dimexpr\tdf@horigin+\hoffset+\oddsidemargin\relax
+    \dimen@ii=\dimexpr\paperwidth-\dimen@-\textwidth\relax
+    \advance\dimen@ -\dimexpr\tdf@lsep-\marginparsep\relax
+    \ifdim\dimen@ii<\dimen@ \dimen@=\dimen@ii \fi
+    \marginparwidth=\dimexpr\dimen@-2\marginparsep\relax
+    \ifdefined\pdfpagewidth \pdfpagewidth=\paperwidth \fi
+    \ifdefined\pagewidth \pagewidth=\paperwidth \fi
+    \ifdefined\stockwidth \stockwidth=\paperwidth \fi
+  \fi}
+\ifdefined\DeclareHookRule
+  \DeclareHookRule{begindocument}{todofloats}{after}{geometry}
+\fi
+
+\AtBeginDocument{%
+  \tdf@grow
+  \tdf@setlsep
+  \tdf@sepdim=\dimexpr\tdf@opt@sep\relax
+  \setbox\tdf@tmpbox\hbox{\setkeys{todonotes}{}\@todonotes@useSizeCommand\strut
+    \global\tdf@strutht=\ht\strutbox \global\tdf@strutdp=\dp\strutbox}%
+  \tdf@setgeometry
+  \tdf@layout
+  \if@filesw
+    \immediate\write\@mainaux{%
+      \string\gdef\string\tdf@aux@geometry{%
+        {\number\paperwidth}{\number\paperheight}%
+        {\number\dimexpr 1in+\oddsidemargin\relax}%
+        {\number\dimexpr 1in+\oddsidemargin+\textwidth\relax}%
+        {\tdf@ceiling}{\tdf@floor}%
+        {\number\marginparwidth}{\number\marginparsep}%
+        {\number\tdf@lsep}{\ifx\tdf@opt@side\tdf@alternate 1\else 0\fi}}}%
+  \fi
+}
+\def\tdf@aux@geometry#1{}% (the aux value is only used by external checkers)
+\def\tdf@aux@maxid#1{\tdf@setmaxid{#1}}
+\def\tdf@aux@profile#1#2{\expandafter\gdef\csname tdf@prof@#1\endcsname{#2}}
+
+%% ---------------------------------------------------------------------------
+%% The note text.  \tdf@typeset{<width>} sets the text of the current \todo in
+%% a box of that width (background width; the text is narrower by 2 sep) and
+%% cuts it into units: \tdf@canon is a vbox of unit boxes with a \penalty0
+%% after each one, \tdf@profile the comma list of their heights (sp), and
+%% \tdf@nunits their number.  A unit is what lies between two places where TeX
+%% may break the text (usually one line), with the space that follows it; a
+%% unit box has depth 0, so heights add up exactly.  Two units are merged when
+%% a hyperlink is open at the end of the first one (see \tdf@linkmark).
+\def\tdf@S{S}\def\tdf@E{E}
+\def\tdf@linkmark#1{%
+  \ifvmode\else
+    \ifmmode \vadjust{\marks\tdf@linkmarks{#1}}%
+    \else\ifinner\else \vadjust{\marks\tdf@linkmarks{#1}}\fi\fi
+  \fi}
+\def\tdf@linkguard{%
+  \ifdefined\pdfstartlink
+    \let\tdf@pdfstartlink\pdfstartlink
+    \let\tdf@pdfendlink\pdfendlink
+    \def\pdfstartlink{\tdf@linkmark S\tdf@pdfstartlink}%
+    \def\pdfendlink{\tdf@pdfendlink\tdf@linkmark E}%
+  \fi}
+
+\def\tdf@typeset#1{%
+  \tdf@Wouter=\dimexpr#1\relax
+  \tdf@W=\dimexpr\tdf@Wouter-2\tdf@sepdim\relax
+  \edef\tdf@mainstack{\ifdefined\@pdfcolorstack\number\@pdfcolorstack\else0\fi}%
+  \setbox\tdf@raw\vbox{%
+    \todofloatsinnotetrue
+    \hsize\tdf@W \textwidth\hsize \columnwidth\hsize
+    \@parboxrestore
+    \@inlabelfalse \@newlistfalse \@minipagefalse
+    \let\@listdepth\@mplistdepth \@mplistdepth\z@
+    \iftdf@usestack \def\@pdfcolorstack{\tdf@stack}\fi
+    \tdf@linkguard
+    \@todonotes@useSizeCommand
+    \xdef\tdf@azero{\the\dimexpr\tdf@sepdim+\ht\strutbox\relax}%
+    \pgfutil@raggedright\rightskip\z@ plus2em \spaceskip.3333em \xspaceskip.5em\relax
+    \begingroup
+      \noindent\color{\@todonotes@currenttextcolor}\strut
+      \if@todonotes@authorgiven\@todonotes@author:\,\fi
+      \@todonotes@text\par
+    \endgroup}%
+  \tdf@chunkify
+  \iftdf@opt@debug
+    \PackageInfo{todofloats}{note text: width \the\tdf@W, \the\tdf@nunits\space units
+      of heights (sp) \tdf@profile}%
+  \fi}
+
+\def\tdf@splitsetup{\vbadness\@M \vfuzz\maxdimen \splittopskip\z@skip
+  \splitmaxdepth\maxdimen \boxmaxdepth\maxdimen}
+
+\def\tdf@chunkify{%
+  \begingroup
+  \tdf@splitsetup
+  \global\setbox\tdf@canon\vbox{}%
+  \gdef\tdf@profile{}\global\tdf@nunits\z@
+  \tdf@linkopenfalse
+  \setbox\tdf@acc\box\voidb@x
+  \loop\unless\ifvoid\tdf@raw
+    \dimen@=\dimexpr\ht\tdf@raw+\dp\tdf@raw\relax
+    \setbox\tdf@piece\vsplit\tdf@raw to\z@
+    \setbox\tdf@piece\vbox{\unvbox\tdf@piece}%
+    \advance\dimen@-\dimexpr\ht\tdf@piece+\dp\tdf@piece\relax
+    \ifvoid\tdf@raw\else \advance\dimen@-\dimexpr\ht\tdf@raw+\dp\tdf@raw\relax \fi
+    % \dimen@ is now the space TeX dropped at the break
+    \edef\tdf@tmp{\splitbotmarks\tdf@linkmarks}%
+    \ifx\tdf@tmp\tdf@S \tdf@linkopentrue \else
+      \ifx\tdf@tmp\tdf@E \tdf@linkopenfalse \fi\fi
+    \setbox\tdf@acc\vbox{\unvbox\tdf@acc\unvbox\tdf@piece\kern\dimen@}%
+    \iftdf@linkopen \ifvoid\tdf@raw \tdf@flushunit \fi \else \tdf@flushunit \fi
+  \repeat
+  \ifnum\tdf@nunits=\z@ \setbox\tdf@acc\vbox{}\tdf@flushunit \fi
+  \endgroup}
+\def\tdf@flushunit{%
+  \wd\tdf@acc=\tdf@W
+  \xdef\tdf@profile{\tdf@profile\ifx\tdf@profile\@empty\else,\fi\number\ht\tdf@acc}%
+  \global\advance\tdf@nunits\@ne
+  \global\setbox\tdf@canon\vbox{\unvbox\tdf@canon\nointerlineskip\box\tdf@acc\penalty\z@}}
+
+% The background of one piece: a rule behind a box of width \tdf@Wouter.
+% #1 = extra height above the box, #2 = extra depth below it (the rule takes
+% no space, so the extra parts hang over the neighbors).
+\def\tdf@bgrule#1#2{%
+  \iftdf@nofill\else
+    \setbox\tdf@tmpbox\hbox{{\color{\@todonotes@currentbackgroundcolor}%
+      \vrule\@width\tdf@Wouter\@height\dimexpr\ht\tdf@piece+#1\relax
+        \@depth\dimexpr\dp\tdf@piece+#2\relax}}%
+    \ht\tdf@tmpbox\z@ \dp\tdf@tmpbox\z@
+    \rlap{\box\tdf@tmpbox}%
+  \fi}
+
+%% ---------------------------------------------------------------------------
+%% Inline notes.  The units go onto the current vertical list one by one, so
+%% the list is broken between them like text.  The background of a unit
+%% reaches `sep' below it; the next unit paints over that, so it only shows
+%% as padding where the note is broken.
+\def\tdf@emitunits{%
+  \begingroup
+  \tdf@splitsetup
+  \tdf@k\z@
+  \loop\unless\ifvoid\tdf@canon
+    \advance\tdf@k\@ne
+    \setbox\tdf@piece\vsplit\tdf@canon to\z@
+    \setbox\tdf@piece\vbox{%
+      \ifnum\tdf@k=\@ne \kern\tdf@sepdim \fi
+      \unvbox\tdf@piece
+      \ifvoid\tdf@canon \kern\tdf@sepdim \fi}%
+    \nointerlineskip
+    \moveright\@totalleftmargin\hbox{%
+      \tdf@bgrule{\ifnum\tdf@k=\@ne\z@\else\tdf@uprule\fi}{\ifvoid\tdf@canon\z@\else\tdf@sepdim\fi}%
+      \kern\tdf@sepdim\box\tdf@piece}%
+    \ifvoid\tdf@canon\else
+      % a note of up to three units stays whole; a longer one keeps its first
+      % two and its last two units together
+      \ifnum\tdf@nunits>\thr@@
+        \ifnum\tdf@k=\@ne \penalty\@M
+        \else\ifnum\tdf@k=\numexpr\tdf@nunits-1\relax \penalty\@M
+        \else \penalty\z@ \fi\fi
+      \else \penalty\@M \fi
+    \fi
+  \repeat
+  \endgroup}
+\def\tdf@uprule{1pt}
+
+\renewcommand{\@todonotes@drawInlineNote}{%
+  \begingroup
+  \tdf@usestackfalse
+  \gdef\tdf@mark{}%
+  \tdf@boxedfalse
+  \ifmmode \tdf@boxedtrue \else \ifhmode\ifinner \tdf@boxedtrue \fi\fi\fi
+  \if@todonotes@inlinepar\else \tdf@boxedtrue \fi
+  \iftdf@boxed
+    \tdf@typeset{\@todonotes@inlinewidth}%
+    \leavevmode\vtop{\@totalleftmargin\z@ \tdf@emitunits}%
+  \else
+    \if@inlabel\leavevmode\fi
+    \par
+    \ifvmode\else\@@par\fi
+    \tdf@typeset{\@todonotes@inlinewidth}%
+    \addvspace{\dimexpr\tdf@opt@inlineskip\relax}%
+    \tdf@emitunits
+    \prevdepth\z@
+    \addvspace{\dimexpr\tdf@opt@inlineskip\relax}%
+  \fi
+  \endgroup}
+
+%% ---------------------------------------------------------------------------
+%% Margin notes.  Replace todonotes' margin path: same inText anchor picture
+%% and connector; \marginpar -> \marginnote for the first piece; the pieces
+%% after a cut are kept in boxes until their page is shipped out.
+\def\tdf@side{r}
+\def\tdf@offset{0pt}
+\def\tdf@currxpos{0pt}
+\def\tdf@currpage{1}
+\def\tdf@splits{}
+\def\tdf@conts{}
+
+% Our replacement for marginnote's side/x detection: everything comes from
+% the layout computed at \begin{document}.  (Runs inside \marginnote.)
+\def\tdf@margintest{%
+  \edef\@mn@currpage{\tdf@currpage}%
+  \edef\@mn@currxpos{\the\dimexpr\tdf@currxpos-\hoffset-\tdf@horigin+1in\relax}%
+  \if l\tdf@side\@tempswafalse\else\@tempswatrue\fi
+  \if@reversemargin\if@tempswa\@tempswafalse\else\@tempswatrue\fi\fi
+}
+
+\def\tdf@connector{%
+  \if l\tdf@side
+    \@todonotes@drawLineToLeftMargin
+  \else
+    \@todonotes@drawLineToRightMargin
+  \fi
+}
+
+\def\tdf@debugframe{%
+  \iftdf@opt@debug
+    \edef\tdf@w{\the\wd\tdf@notebox}%
+    \edef\tdf@h{\the\ht\tdf@notebox}%
+    \edef\tdf@d{\the\dp\tdf@notebox}%
+    \begin{tikzpicture}[overlay]%
+      \draw[red,line width=0.3pt] (-\tdf@w,-\tdf@d) rectangle (0pt,\tdf@h);
+      \node[anchor=north east,inner sep=1pt,font=\fontsize{4}{4}\selectfont,text=red]
+        at (0pt,\tdf@h) {\thetdfnote/\tdf@currpage\tdf@side};
+    \end{tikzpicture}%
+  \fi
+}
+
+% Content placed into the margin: a position mark (baseline of the note box),
+% the note box itself, the connector and (optionally) the debug frame.
+\def\tdf@notecontent{%
+  \zref@savepos\zref@labelbylist{tdf@n@\thetdfnote}{tdfnote}%
+  \copy\tdf@notebox
+  \tdf@connector
+  \tdf@debugframe
+}
+
+% The first item of a comma list that ends with a comma: \tdf@pop\list\item
+% moves it to \item (empty if the list is empty).
+\def\tdf@pop#1#2{%
+  \ifx#1\@empty \let#2\@empty
+  \else \expandafter\tdf@pop@\expandafter#1\expandafter#2#1\@nil \fi}
+\def\tdf@pop@#1#2#3,#4\@nil{\def#2{#3}\def#1{#4}}
+\def\tdf@splitcont#1/#2\@nil{\def\tdf@cpage{#1}\def\tdf@cy{#2}}
+
+% The header of a continuation piece and the footer of a piece that is
+% continued, each a line of the height the layout has counted on.
+% In a margin that is too narrow for the words, the header is the mark alone
+% and the footer an arrow.
+\def\tdf@decoline#1#2#3#4{% #1 text, #2 shorter text, #3/#4 fill before/after
+  \setbox\tdf@tmpbox\hbox{\@todonotes@useSizeCommand#1}%
+  \ifdim\wd\tdf@tmpbox>\tdf@W \setbox\tdf@tmpbox\hbox{\@todonotes@useSizeCommand#2}\fi
+  \setbox\tdf@tmpbox\hbox to\tdf@W{#3\unhbox\tdf@tmpbox#4}%
+  \ht\tdf@tmpbox=\tdf@strutht \dp\tdf@tmpbox=\tdf@strutdp
+  \box\tdf@tmpbox}
+\def\tdf@headline{%
+  \tdf@decoline{\tdf@mark\ifx\tdf@mark\@empty\else\hskip.5em\fi
+    {\color{black!60}\todofloatscontinued}}{\tdf@mark}{}{\hss}%
+  \kern\tdf@headsep}
+\def\tdf@footline{%
+  \kern\tdf@headsep
+  \tdf@decoline{{\color{black!60}\todofloatscontinues}}{{\color{black!60}$\downarrow$}}{\hss}{}}
+
+% \tdf@decorate: \tdf@piece (the text of piece \tdf@k) -> \tdf@deco, the piece
+% with padding, background, and header/footer.  \tdf@canon is void iff this is
+% the last piece.
+\def\tdf@decorate{%
+  \setbox\tdf@piece\vbox{\offinterlineskip
+    \kern\tdf@sepdim
+    \ifnum\tdf@k>\@ne
+      \tdf@headline
+      \iftdf@usestack \pdfcolorstack\tdf@stack current\relax \fi
+    \fi
+    \box\tdf@piece
+    \iftdf@usestack \pdfcolorstack\tdf@mainstack current\relax \fi
+    \ifvoid\tdf@canon\else \tdf@footline \fi
+    \kern\tdf@sepdim}%
+  \setbox\tdf@deco\hbox{\tdf@bgrule\z@\z@\kern\tdf@sepdim\box\tdf@piece\kern\tdf@sepdim}}
+
+\def\tdf@buildmargin{%
+  \gdef\tdf@mark{}%
+  \tdf@usestackfalse
+  \ifx\tdf@splits\@empty\else
+    \ifdefined\pdfcolorstackinit
+      \global\mathchardef\tdf@stack=\pdfcolorstackinit direct{0 g 0 G}\relax
+      \tdf@usestacktrue
+    \fi
+  \fi
+  \tdf@typeset{\@todonotes@textwidth}%
+  \if@filesw
+    \immediate\write\@auxout{\string\tdf@aux@profile{\thetdfnote}{\tdf@profile}}%
+  \fi
+  \tdf@splitsetup
+  % the first piece, attached to the anchor line
+  \tdf@k\@ne
+  \tdf@nextpiece
+  \tdf@decorate
+  \edef\tdf@Ht{\the\ht\tdf@deco}%
+  \setbox\tdf@notebox\hbox{%
+    \lower\dimexpr\tdf@Ht-\tdf@azero\relax\box\tdf@deco
+    \begin{tikzpicture}[remember picture, overlay]%
+      \node[anchor=north east, inner sep=0pt, outer sep=0pt,
+        minimum width=\tdf@Wouter, minimum height=\tdf@Ht] (inNote) at (0pt,\tdf@azero) {};%
+    \end{tikzpicture}}%
+  % the pieces after a cut, kept until their page is shipped out
+  \loop\unless\ifvoid\tdf@canon
+    \advance\tdf@k\@ne
+    \tdf@pop\tdf@conts\tdf@tmp
+    \ifx\tdf@tmp\@empty
+      \edef\tdf@cpage{\number\numexpr\tdf@currpage+\tdf@k-1\relax}%
+      \edef\tdf@cy{\tdf@ceiling}%
+      \tdf@setrerun
+    \else
+      \expandafter\tdf@splitcont\tdf@tmp\@nil
+    \fi
+    \tdf@nextpiece
+    \tdf@decorate
+    \expandafter\newbox\csname tdf@pbox@\thetdfnote @\the\tdf@k\endcsname
+    \global\expandafter\setbox\csname tdf@pbox@\thetdfnote @\the\tdf@k\endcsname\box\tdf@deco
+    \edef\tdf@tmp{\noexpand\tdf@do
+      {\expandafter\noexpand\csname tdf@pbox@\thetdfnote @\the\tdf@k\endcsname}%
+      {\tdf@cpage}{\tdf@side}{\tdf@cy}{\thetdfnote}{\the\tdf@k}}%
+    \expandafter\g@addto@macro\expandafter\tdf@pending\expandafter{\tdf@tmp}%
+  \repeat
+}
+% \tdf@nextpiece: cut the next piece off \tdf@canon at the height the layout
+% has planned (all of it if nothing is planned) -> \tdf@piece
+\def\tdf@nextpiece{%
+  \tdf@pop\tdf@splits\tdf@tmp
+  \ifx\tdf@tmp\@empty
+    \setbox\tdf@piece\vbox{\unvbox\tdf@canon}%
+  \else
+    \setbox\tdf@piece\vsplit\tdf@canon to\tdf@tmp sp
+    \setbox\tdf@piece\vbox{\unvbox\tdf@piece}%
+  \fi
+  \wd\tdf@piece=\tdf@W}
+
+\renewcommand{\@todonotes@drawMarginNoteWithLine}{%
+  \ifvmode
+    \vspace*{-\parskip}%   % as in todonotes: back up if we are in vertical mode
+    \vskip-\baselineskip
+    \noindent
+  \fi
+  \stepcounter{tdfnote}%
+  \tdf@prepare{\thetdfnote}%
+  \begin{tikzpicture}[remember picture, overlay, baseline=-0.75ex]%
+    \node [coordinate] (inText) {};%
+  \end{tikzpicture}%
+  \zref@savepos\zref@labelbylist{tdf@a@\thetdfnote}{tdfanchor}%
+  \begingroup
+    \tdf@buildmargin
+    \zref@setcurrent{tdfht}{\number\ht\tdf@notebox}%
+    \zref@setcurrent{tdfdp}{\number\dp\tdf@notebox}%
+    \zref@setcurrent{tdfwd}{\number\wd\tdf@notebox}%
+    \zref@setcurrent{tdfoff}{\number\dimexpr\tdf@offset\relax}%
+    \zref@setcurrent{tdftwocol}{\if@twocolumn1\else0\fi}%
+    \iftdf@opt@debug
+      \PackageInfo{todofloats}{note \thetdfnote: side=\tdf@side, page=\tdf@currpage,
+        offset=\tdf@offset, x=\tdf@currxpos}%
+    \fi
+    \let\@mn@margintest\tdf@margintest
+    \if l\tdf@side \marginparsep=\tdf@lsep \fi
+    \marginnote[\tdf@notecontent]{\tdf@notecontent}[\tdf@offset]%
+  \endgroup
+}
+
+% \todofloatsflag{<material>}: a margin item at the current line, set like a
+% margin note but without number, background or connector.  It is issued
+% directly (not through \todo, whose group would trap it inside a formula), so
+% it also works in math; amsmath's measuring pass is skipped.
+\def\tdf@ifmeasuring{%
+  \ifcsname ifmeasuring@\endcsname
+    \expandafter\tdf@ifmeasuring@
+  \else
+    \expandafter\@secondoftwo
+  \fi}
+\def\tdf@ifmeasuring@{%
+  \csname ifmeasuring@\endcsname
+    \expandafter\@firstoftwo
+  \else
+    \expandafter\@secondoftwo
+  \fi}
+\renewcommand\todofloatsflag[1]{%
+  \tdf@ifmeasuring{}{%
+    \ifvmode\leavevmode\fi
+    \begingroup
+      \setkeys{todonotes}{noline,nolist}%
+      \tdf@nofilltrue
+      \def\@todonotes@text{#1}%
+      \@todonotes@drawMarginNoteWithLine
+    \endgroup}}
+
+%% ---------------------------------------------------------------------------
+%% Shipout: put the continuation pieces that belong to this page into its
+%% margin (absolute coordinates from the layout).  A piece whose page has
+%% already gone (stale layout) is put on the current page.
+\def\tdf@textleft{\dimexpr\tdf@horigin+\hoffset
+  +\if@twoside\ifodd\c@page\oddsidemargin\else\evensidemargin\fi\else\oddsidemargin\fi\relax}
+\def\tdf@placecont#1#2#3#4#5#6{%
+  \ifnum#2>\c@abspage
+    \g@addto@macro\tdf@pending{\tdf@do{#1}{#2}{#3}{#4}{#5}{#6}}%
+  \else
+    \ifnum#2<\c@abspage \tdf@setrerun \fi
+    \edef\tdf@x{\the\dimexpr\tdf@textleft
+      \if l#3-\tdf@lsep-\wd#1\else+\textwidth+\marginparsep\fi\relax}%
+    \edef\tdf@y{\the\dimexpr#4sp-\ht#1-\paperheight\relax}%
+    \zref@setcurrent{tdfht}{\number\ht#1}%
+    \zref@setcurrent{tdfwd}{\number\wd#1}%
+    \put(\tdf@x,\tdf@y){\zref@savepos\zref@labelbylist{tdf@c@#5@#6}{tdfcont}\box#1}%
+  \fi}
+\def\tdf@shipbg{%
+  \ifx\tdf@pending\@empty\else
+    \begingroup
+      \let\tdf@todo\tdf@pending
+      \gdef\tdf@pending{}%
+      \let\tdf@do\tdf@placecont
+      \tdf@todo
+    \endgroup
+  \fi}
+\AddToHook{shipout/background}{\tdf@shipbg}
+
+% Pieces that are still waiting when the document ends get pages of their own.
+% They are shipped from the enddocument hook, before LaTeX's own final
+% \clearpage: after that one, newer kernels make every \write immediate, and a
+% page shipped then would record the positions of the page before it.
+\def\tdf@flushpending{%
+  \ifx\tdf@pending\@empty\else
+    \clearpage
+    \@tempcnta\z@
+    \loop\unless\ifx\tdf@pending\@empty
+      \advance\@tempcnta\@ne
+      \ifnum\@tempcnta>40
+        \PackageWarningNoLine{todofloats}{Some margin note text could not be placed}%
+        \gdef\tdf@pending{}%
+      \else
+        \null\clearpage
+      \fi
+    \repeat
+  \fi}
+
+%% ---------------------------------------------------------------------------
+%% End of document: record the number of notes; warn if a rerun is needed
+%% (compare the freshly written tdf@ labels and profiles with the ones read
+%% at the start, the same way LaTeX checks \newlabel).
+\def\tdf@check@label#1#2{%
+  \tdf@ifprefix{#1}{%
+    \def\tdf@tmp{#2}%
+    \expandafter\ifx\csname Z@R@#1\endcsname\tdf@tmp\else\global\tdf@changedtrue\fi
+  }{}%
+}
+\ExplSyntaxOn
+\cs_new:Npn \tdf@ifprefix #1
+  { \str_if_eq:eeTF { \str_range:nnn {#1} {1} {4} } { tdf@ } }
+\ExplSyntaxOff
+\AtEndDocument{%
+  \tdf@flushpending
+  \if@filesw
+    \immediate\write\@mainaux{\string\tdf@aux@maxid{\thetdfnote}}%
+  \fi
+  \let\tdf@orig@zref@newlabel\zref@newlabel
+  \def\zref@newlabel#1#2{\tdf@check@label{#1}{#2}\tdf@orig@zref@newlabel{#1}{#2}}%
+  \def\tdf@aux@profile#1#2{%
+    \def\tdf@tmp{#2}%
+    \expandafter\ifx\csname tdf@prof@#1\endcsname\tdf@tmp\else\global\tdf@changedtrue\fi}%
+  \AddToHook{enddocument/end}{%
+    \tdf@ifrerun{\tdf@changedtrue}{}%
+    \iftdf@changed
+      \PackageWarningNoLine{todofloats}{Margin note positions have changed.
+        Rerun LaTeX to get the notes right}%
+    \fi
+  }%
+}
+\endinput

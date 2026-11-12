@@ -1,110 +1,439 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODONOTE CONFIGURATION
-\NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{mytodonotes}[2026/08/21 v1.6 todonotes configuration]
-\RequirePackage[textsize=scriptsize]{todonotes} % [disable]
-\RequirePackage[most]{tcolorbox}   % breakable inline notes
-\tikzset{
-  notestyleraw/.append style={
-    rounded corners=0pt,
-    inner sep=3pt,
-    line width=0.9pt,  % frame stays enabled; \note sets bordercolor = fill,
-                       % so plain notes look flat and only notes that override
-                       % bordercolor (e.g. \claude's owner color) show a frame
-  }
-}
-\makeatletter
-\newcommand*\iftodonotes{\if@todonotes@disabled\expandafter\@secondoftwo\else\expandafter\@firstoftwo\fi}  % defines \iftodonotes{<true>}{<false>}, thanks to \makeatother
-\newcommand{\noindentaftertodo}{\iftodonotes{\noindent}{}}
+%% mytodonotes.sty --- author notes for a LaTeX paper, on todonotes
+%% Part of the latex-todonotes skill (git@github.com:postylem/latex-todonotes.git).
+%%
+%%   \usepackage[authors={sam, lee=teal!20}, grow]{mytodonotes}   % [disable]
+%%
+%% WHAT YOU GET
+%%   * \note[<todonotes options>]{<name>}{<color>}{<text>}: a note by <name> on
+%%     a <color> background, in the margin, or in the text with the option
+%%     `inline'.  Notes are drawn by todofloats.sty: they work inside floats
+%%     and break across columns and pages.
+%%   * Authors.  For every author there is a color `notecolor-<name>' and two
+%%     macros: \<name>[<options>]{<text>} (margin) and \<Name>[<options>]{<text>}
+%%     (inline).  Declare them from a list,
+%%         \noteauthors{sam, lee=teal!20}      or the package option authors={...}
+%%     where an author without a color gets one derived from the name: the
+%%     same name gets the same hue in every paper and every compile, moved
+%%     away from the hues already taken.  The three-line pattern still works:
+%%         \colorlet{notecolor-sam}{red!40}
+%%         \newcommand{\sam}[2][]{\note[#1]{sam}{notecolor-sam}{#2}}
+%%         \newcommand{\Sam}[2][]{\sam[inline,#1]{#2}}
+%%     \notewho[<options>]{<name>}{<text>} is a note by somebody who has no
+%%     macros (the color is derived from the name as well).
+%%   * Numbers.  Every note opens with a tag: its author on the saturated hue
+%%     of the note color, and its number.  \label{note:<x>} in the text of a
+%%     note makes \cref{note:<x>} (or \ref) print the same tag, linked to the
+%%     note; with the option refs=number it prints #<number> instead.
+%%   * \response{<name>}: a reply inside somebody else's note, under a rule.
+%%
+%% OPTIONS
+%%   authors={<list>}   authors to declare, as for \noteauthors
+%%   agents={<list>}    load agentnotes.sty and declare these agents (\newagent)
+%%   textsize=<name>    size of the note text, a command name without the
+%%                      backslash (default scriptsize)
+%%   seed=<integer>     changes the colors that are derived from names
+%%   tags=pill|plain    how an author's tag looks: a filled rounded label
+%%                      (default), or plain small text in the author's color,
+%%                      which draws far less attention
+%%   refs=tag|number    what \cref{note:<x>} prints: the note's tag, author and
+%%                      number (default), or #<number> in the text font, which
+%%                      is quieter in running text
+%%   Everything else goes to todofloats.sty (side, gap, sep, grow, debug, ...)
+%%   and from there to todonotes (disable, ...).
 
-% Paragraphs inside notes follow the document's paragraph style.  Note bodies
-% are typeset in minipage-like boxes, which zero both \parindent and \parskip,
-% so multi-paragraph notes lose whichever separator the document uses (the
-% indent by default; the skip under \usepackage{parskip}).  Capture the
-% document's values once it is fully set up, and let \noteparstyle restore
-% them inside a note body.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{mytodonotes}[2026/10/02 v2.0 author notes: numbered, breakable, colors from names]
+
+\RequirePackage{kvoptions}
+\SetupKeyvalOptions{family=mytodonotes,prefix=mtn@opt@}
+\DeclareStringOption{authors}
+\DeclareStringOption{agents}
+\DeclareStringOption[scriptsize]{textsize}
+\DeclareStringOption[0]{seed}
+\DeclareStringOption[tag]{refs}
+\DeclareStringOption[pill]{tags}
+\DeclareDefaultOption{\PassOptionsToPackage{\CurrentOption}{todofloats}}
+\ProcessKeyvalOptions{mytodonotes}
+\PassOptionsToPackage{textsize=\mtn@opt@textsize}{todofloats}
+\RequirePackage{todofloats}   % loads todonotes (and so xcolor and tikz)
+\RequirePackage{expl3}
+
+\newcommand*\iftodonotes{\if@todonotes@disabled\expandafter\@secondoftwo\else\expandafter\@firstoftwo\fi}  % \iftodonotes{<true>}{<false>}
+\newcommand{\noindentaftertodo}{\iftodonotes{\noindent\ignorespaces}{}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Paragraphs inside notes follow the document's paragraph style.  A note body
+%% is typeset in a box that zeroes both \parindent and \parskip, so
+%% multi-paragraph notes lose whichever separator the document uses (the
+%% indent by default; the skip under \usepackage{parskip}).  Capture the
+%% document's values once it is fully set up, and let \noteparstyle restore
+%% them inside a note body.
 \newlength{\note@parindent}
 \newlength{\note@parskip}
 \AtBeginDocument{%
   \setlength{\note@parindent}{\parindent}%
   \setlength{\note@parskip}{\parskip}}
-% A run-in heading (\paragraph) as the first thing in a minipage-like box
-% clobbers the box's \everypar before it can clear \if@minipage, and the
-% kernel's paragraph handling (ltpara) cancels the auto-inserted \parskip
-% glue with -\parskip while that flag is true -- so every later paragraph in
-% the box loses its parskip.  Clearing the flag at the first paragraph's
-% para/begin hook reproduces what the box's own \everypar would have done,
-% at the same effective timing: the flag still suppresses \parskip at the
-% box top (that decision predates the hook), and is gone afterwards.
-\newcommand{\notefixminipageflag}{%
-  \AddToHookNext{para/begin}{\global\@minipagefalse}}
 \newcommand{\noteparstyle}{%
   \setlength{\parindent}{\note@parindent}%
-  \setlength{\parskip}{\note@parskip}%
-  \notefixminipageflag}
+  \setlength{\parskip}{\note@parskip}}
+% A run-in heading (\paragraph) as the first thing in a minipage-like box
+% clobbers the box's \everypar before it can clear \if@minipage, and the
+% kernel's paragraph handling cancels the auto-inserted \parskip glue with
+% -\parskip while that flag is true -- so every later paragraph in the box
+% loses its parskip.  Clearing the flag at the first paragraph's para/begin
+% hook reproduces what the box's own \everypar would have done.  (Used by the
+% suggestion blocks of agentnotes; a note body is not a minipage.)
+\newcommand{\notefixminipageflag}{%
+  \AddToHookNext{para/begin}{\global\@minipagefalse}}
 
-% Inline notes break across pages.  todonotes typesets [inline] notes as a
-% single TikZ node, which cannot split, so a long inline comment overflows its
-% page; \note therefore routes inline notes to a breakable tcolorbox styled to
-% match (same fill, same 0.9pt frame, same text size and padding).  Any other
-% todonotes options passed alongside `inline` are ignored on this path.
-%
-% A package may override the frame color of the NEXT inline note with
-% \noteframecolor{<color>} (agentnotes uses this for the owner accent); the
-% override resets after every \note.
-\def\note@frameoverride{}
-\newcommand{\noteframecolor}[1]{\def\note@frameoverride{#1}}
-\newcommand{\note@inline}[3]{% #1 = name, #2 = fill color, #3 = body
-  \ifx\note@frameoverride\@empty
-    \colorlet{note@frame}{#2}%
-  \else
-    \colorlet{note@frame}{\note@frameoverride}%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Colors.  A note color is a pale tint that sits behind text.  Two things are
+%% derived from colors here:
+%%   * the ACCENT of a color: its hue, at a saturation and brightness that
+%%     carry white text (used for the tags);
+%%   * a note color for a NAME that has none: a hue computed from the letters
+%%     of the name, moved away from the hues in use.
+\newcommand*\note@tintsat{.14}   % saturation of a derived note color
+
+\ExplSyntaxOn
+\prop_new:N  \g__mtn_accent_prop      % color expression -> r,g,b of its accent
+\clist_new:N \g__mtn_hues_clist       % hues in use (degrees)
+\tl_new:N    \l__mtn_key_tl
+\tl_new:N    \l__mtn_rgb_tl
+\tl_new:N    \l__mtn_h_tl
+\tl_new:N    \l__mtn_s_tl
+\tl_new:N    \l__mtn_b_tl
+\tl_new:N    \l__mtn_cap_tl
+\fp_new:N    \l__mtn_lum_fp
+\int_new:N   \l__mtn_hue_int
+\int_new:N   \l__mtn_try_int
+\int_new:N   \l__mtn_dist_int
+\bool_new:N  \l__mtn_near_bool
+
+% hue, saturation, brightness of color #1 -> \l__mtn_h_tl, \l__mtn_s_tl, \l__mtn_b_tl
+\cs_new_protected:Npn \__mtn_hsb:n #1
+  {
+    \colorlet { note@base } {#1}
+    \extractcolorspecs { note@base } \note@model \note@spec
+    \convertcolorspec \note@model \note@spec { hsb } \note@hsb
+    \exp_after:wN \__mtn_hsb:w \note@hsb \q_stop
+  }
+\cs_new_protected:Npn \__mtn_hsb:w #1 , #2 , #3 \q_stop
+  {
+    \tl_set:Nn \l__mtn_h_tl {#1}
+    \tl_set:Nn \l__mtn_s_tl {#2}
+    \tl_set:Nn \l__mtn_b_tl {#3}
+  }
+\cs_new:Npn \__mtn_lum:w #1 , #2 , #3 \q_stop
+  { 0.2126 * (#1)^2.2 + 0.7152 * (#2)^2.2 + 0.0722 * (#3)^2.2 }
+
+% \note@setaccent{<color>}{<name>}: define the color <name> as the accent of
+% <color>.  White text on it has a contrast of at least 4:1 (a hue that is
+% light at full brightness, such as green or yellow, is darkened).  Gray stays
+% gray.
+\cs_new_protected:Npn \note@setaccent #1#2
+  {
+    \tl_set:Nx \l__mtn_key_tl { \tl_to_str:n {#1} }
+    \prop_get:NVNF \g__mtn_accent_prop \l__mtn_key_tl \l__mtn_rgb_tl
+      {
+        \__mtn_hsb:n {#1}
+        \fp_compare:nNnTF { \l__mtn_s_tl } < { 0.02 }
+          { \tl_set:Nn \l__mtn_rgb_tl { .42 , .42 , .42 } }
+          {
+            \exp_args:Nnx \convertcolorspec { hsb } { \l__mtn_h_tl , .66 , .70 } { rgb } \l__mtn_rgb_tl
+            \fp_set:Nn \l__mtn_lum_fp
+              { \exp_after:wN \__mtn_lum:w \l__mtn_rgb_tl \q_stop }
+            \fp_compare:nNnT { \l__mtn_lum_fp } > { 0.2 }
+              {
+                \tl_set:Nx \l__mtn_b_tl
+                  { \fp_eval:n { round ( 0.70 * ( 0.2 / \l__mtn_lum_fp ) ^ ( 1 / 2.2 ) , 4 ) } }
+                \exp_args:Nnx \convertcolorspec { hsb } { \l__mtn_h_tl , .66 , \l__mtn_b_tl } { rgb } \l__mtn_rgb_tl
+              }
+          }
+        \prop_gput:NVV \g__mtn_accent_prop \l__mtn_key_tl \l__mtn_rgb_tl
+      }
+    \exp_args:Nnnx \definecolor {#2} { rgb } { \l__mtn_rgb_tl }
+  }
+
+% the hue of color #1 is in use (unless the color is a gray)
+\cs_new_protected:Npn \__mtn_record_hue:n #1
+  {
+    \__mtn_hsb:n {#1}
+    \fp_compare:nNnF { \l__mtn_s_tl } < { 0.02 }
+      {
+        \clist_gput_right:Nx \g__mtn_hues_clist
+          { \fp_eval:n { round ( 360 * \l__mtn_h_tl ) } }
+      }
+  }
+
+% \note@autocolor{<name>}: define notecolor-<name> (globally) with a hue that
+% is computed from the letters of the name and the option `seed', then moved
+% on by the golden angle until it is at least 30 degrees from the hues in use.
+\cs_new_protected:Npn \note@autocolor #1
+  {
+    \int_set:Nn \l__mtn_hue_int { \int_abs:n { \mtn@opt@seed } }
+    \str_map_inline:nn {#1}
+      {
+        \int_set:Nn \l__mtn_hue_int
+          { \int_mod:nn { \l__mtn_hue_int * 31 + `##1 } { 36000 } }
+      }
+    \int_set:Nn \l__mtn_hue_int { \int_mod:nn { \l__mtn_hue_int } { 360 } }
+    \int_zero:N \l__mtn_try_int
+    \bool_set_true:N \l__mtn_near_bool
+    \bool_while_do:nn
+      { \l__mtn_near_bool && \int_compare_p:nNn { \l__mtn_try_int } < { 12 } }
+      {
+        \bool_set_false:N \l__mtn_near_bool
+        \clist_map_inline:Nn \g__mtn_hues_clist
+          {
+            \int_set:Nn \l__mtn_dist_int { \int_abs:n { \l__mtn_hue_int - ##1 } }
+            \int_compare:nNnT { \l__mtn_dist_int } > { 180 }
+              { \int_set:Nn \l__mtn_dist_int { 360 - \l__mtn_dist_int } }
+            \int_compare:nNnT { \l__mtn_dist_int } < { 30 }
+              { \bool_set_true:N \l__mtn_near_bool }
+          }
+        \bool_if:NT \l__mtn_near_bool
+          {
+            \int_set:Nn \l__mtn_hue_int { \int_mod:nn { \l__mtn_hue_int + 137 } { 360 } }
+            \int_incr:N \l__mtn_try_int
+          }
+      }
+    \clist_gput_right:Nx \g__mtn_hues_clist { \int_use:N \l__mtn_hue_int }
+    \exp_args:Nnx \convertcolorspec { hsb }
+      { \fp_eval:n { round ( \l__mtn_hue_int / 360 , 4 ) } , \note@tintsat , 1 }
+      { rgb } \l__mtn_rgb_tl
+    \use:x
+      {
+        \exp_not:N \xglobal \exp_not:N \definecolor
+          { notecolor-#1 } { rgb } { \l__mtn_rgb_tl }
+      }
+  }
+
+% --- authors ---------------------------------------------------------------
+% \noteauthors{<name>, <name>=<color>, ...}
+\NewDocumentCommand \noteauthors { m }
+  { \clist_map_inline:nn {#1} { \__mtn_author:w ##1 = = \q_stop } }
+\cs_new_protected:Npn \__mtn_author:w #1 = #2 = #3 \q_stop
+  {
+    \exp_args:Nxx \note@declareauthor
+      { \tl_trim_spaces:n {#1} } { \tl_trim_spaces:n {#2} }
+  }
+\cs_new:Npn \__mtn_cap:n #1 { \__mtn_cap:w #1 \q_stop }
+\cs_new:Npn \__mtn_cap:w #1 #2 \q_stop { \str_uppercase:n {#1} #2 }
+
+% \note@declareauthor{<name>}{<color or empty>}
+\cs_new_protected:Npn \note@declareauthor #1#2
+  {
+    \tl_if_empty:nTF {#2}
+      {
+        % keep a color the document has already given this author
+        \@ifundefinedcolor { notecolor-#1 }
+          { \note@autocolor {#1} }
+          { \cs_if_exist:cF { note@author@#1 } { \__mtn_record_hue:n { notecolor-#1 } } }
+      }
+      {
+        \colorlet { notecolor-#1 } {#2}
+        \prop_gclear:N \g__mtn_accent_prop
+        \__mtn_record_hue:n { notecolor-#1 }
+      }
+    \tl_set:Nx \l__mtn_cap_tl { \__mtn_cap:n {#1} }
+    \__mtn_define:nnn {#1} { margin } { \note [ ##1 ] {#1} { notecolor-#1 } { ##2 } }
+    \str_if_eq:VnTF \l__mtn_cap_tl {#1}
+      {
+        \PackageWarning { mytodonotes }
+          { No~inline~macro~for~author~`#1':~the~name~starts~with~a~capital }
+      }
+      {
+        \exp_args:NV \__mtn_define:nnn \l__mtn_cap_tl { inline }
+          { \use:c {#1} [ inline , ##1 ] { ##2 } }
+      }
+    \cs_gset:cpn { note@author@#1 } { }
+  }
+% define \#1 [<options>] {<text>} as #3, unless something else has the name
+\cs_new_protected:Npn \__mtn_define:nnn #1#2#3
+  {
+    \cs_if_exist:cTF {#1}
+      {
+        \cs_if_exist:cTF { note@macro@#1 }
+          { \exp_after:wN \renewcommand \cs:w #1 \cs_end: [ 2 ] [ ] {#3} }
+          {
+            \PackageError { mytodonotes }
+              {
+                \c_backslash_str #1~is~already~defined,~so~it~cannot~be~
+                the~#2~note~macro~of~an~author
+              }
+              {
+                Give~the~author~another~short~name~(an~author~called~
+                `max'~or~`sec'~needs~a~variant).
+              }
+          }
+      }
+      {
+        \exp_after:wN \newcommand \cs:w #1 \cs_end: [ 2 ] [ ] {#3}
+        \cs_gset:cpn { note@macro@#1 } { }
+      }
+  }
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Tags.  A tag is a rounded label of up to three cells: white text on one
+%% color, white text on a second color, and a number in the first color on
+%% white.  The shape is an overlay behind the text, so nothing is clipped.
+\newbox\note@boxa
+\newbox\note@boxb
+\newbox\note@boxc
+% \note@pill{<color 1>}{<text 1>}{<color 2>}{<text 2>}{<number>}
+% (<text 2> and <number> may be empty)
+\newcommand*\note@pill[5]{%
+  \leavevmode\begingroup
+  \dimen@=\f@size\p@ \dimen@=.86\dimen@
+  \fontsize{\strip@pt\dimen@}{\strip@pt\dimen@}\sffamily\bfseries\selectfont
+  \setbox\note@boxa\hbox{\kern.42em{\color{white}#2}\kern.38em}%
+  \def\note@tmp{#4}%
+  \ifx\note@tmp\@empty \setbox\note@boxb\hbox{}%
+  \else \setbox\note@boxb\hbox{\kern.26em{\color{white}#4}\kern.38em}\fi
+  \def\note@tmp{#5}%
+  \ifx\note@tmp\@empty \setbox\note@boxc\hbox{}%
+  \else \setbox\note@boxc\hbox{\kern.36em{\color{#1}#5}\kern.42em}\fi
+  \edef\note@xa{\the\wd\note@boxa}%
+  \edef\note@xb{\the\dimexpr\wd\note@boxa+\wd\note@boxb\relax}%
+  \edef\note@xc{\the\dimexpr\wd\note@boxa+\wd\note@boxb+\wd\note@boxc\relax}%
+  \edef\note@yb{\the\dimexpr-.22em\relax}\edef\note@yt{\the\dimexpr.92em\relax}%
+  \edef\note@r{\the\dimexpr.3em\relax}\edef\note@lw{\the\dimexpr.05em\relax}%
+  \hbox{%
+    \rlap{\tikz[baseline=0pt]{%
+      \useasboundingbox (0pt,0pt);
+      \begin{scope}
+        \clip[rounded corners=\note@r] (0pt,\note@yb) rectangle (\note@xc,\note@yt);
+        \fill[color=#1] (0pt,\note@yb) rectangle (\note@xa,\note@yt);
+        \fill[color=#3] (\note@xa,\note@yb) rectangle (\note@xb,\note@yt);
+        \fill[white] (\note@xb,\note@yb) rectangle (\note@xc,\note@yt);
+      \end{scope}
+      \draw[color=#1, line width=\note@lw, rounded corners=\note@r] (0pt,\note@yb) rectangle (\note@xc,\note@yt);}}%
+    \box\note@boxa\box\note@boxb\box\note@boxc}%
+  \endgroup}
+
+% tags=plain: the same three parts as plain text, small and in the colors of the
+% cells, with no fill, frame, or bold face.
+\newcommand*\note@pill@plain[5]{%
+  \leavevmode\begingroup
+  \dimen@=\f@size\p@ \dimen@=.86\dimen@
+  \fontsize{\strip@pt\dimen@}{\strip@pt\dimen@}\sffamily\selectfont
+  {\color{#1}#2}%
+  \def\note@tmp{#4}\ifx\note@tmp\@empty\else{\color{#3}#4}\fi
+  \def\note@tmp{#5}\ifx\note@tmp\@empty\else{\color{#1}\,#5}\fi
+  \endgroup}
+\def\mtn@tags@plain{plain}
+\ifx\mtn@opt@tags\mtn@tags@plain \let\note@pill\note@pill@plain \fi
+
+% \notetag{<name>}{<note color>}{<number or empty>}: the tag of an author.
+% (Robust: it is the text of a reference to a note, and goes through the aux.)
+\DeclareRobustCommand*\notetag[3]{%
+  \begingroup
+  \@ifundefinedcolor{#2}{\note@setaccent{gray}{note@accenta}}{\note@setaccent{#2}{note@accenta}}%
+  \note@pill{note@accenta}{#1}{note@accenta}{}{#3}%
+  \endgroup}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Numbers.  The text of a reference to a note is \p@note\thenote, which is
+%% <tag command>{<number>}: the tag itself.  (\p@note cannot take the number
+%% as an argument: cleveref does not expand \thenote first.)
+\newcounter{note}
+% refs=number: the text of a reference is \note@numref{<number>}, i.e. #<number>
+\DeclareRobustCommand*\note@numref[1]{\#\nobreak#1}
+\def\mtn@refs@number{number}
+\ifx\mtn@opt@refs\mtn@refs@number
+  \renewcommand*\p@note{\note@numref}
+\else
+  \renewcommand*\p@note{\note@curtag}
+\fi
+\renewcommand*\thenote{{\arabic{note}}}
+\def\theHnote{\arabic{note}}
+\def\note@curtag{}
+% Every note leaves \note@aux{<number>}{<file>}{<line>} in the aux file (the
+% line where its text ends), so that tools/open_items.py can print the number
+% a note has in the PDF next to its place in the source.
+\providecommand*\note@aux[3]{}
+% \note@head{<tag command>}: step the number, print the tag
+\newcommand*\note@head[1]{%
+  \def\note@curtag{#1}%
+  \leavevmode\refstepcounter{note}%
+  \if@filesw
+    \immediate\write\@auxout{\string\note@aux{\arabic{note}}%
+      {\ifdefined\CurrentFile
+         \ifx\CurrentFilePath\@empty\else\CurrentFilePath/\fi\CurrentFile
+       \fi}{\the\inputlineno}}%
   \fi
-  \begin{tcolorbox}[breakable, sharp corners, boxrule=0.9pt,
-      colback=#2, colframe=note@frame,
-      left=3pt, right=3pt, top=3pt, bottom=3pt,
-      before skip=\medskipamount, after skip=\medskipamount]
-    \scriptsize\noteparstyle\noindent\textbf{#1}: #3%
-  \end{tcolorbox}}
-% Adding a note must not change the surrounding indentation.  \marginpar (and
-% hence todonotes' \todo) issued in vertical mode clears \if@nobreak, so a
-% margin note sitting between a heading and its first paragraph silently
-% re-enables that paragraph's indent -- the after-heading \everypar is still
-% armed, it just no longer sees the flag it keys on.  Snapshot the flag before
-% the note and restore it after, so the next paragraph indents exactly as it
-% would have without the note.  The same restore covers inline notes.
+  #1{\arabic{note}}%
+  \todofloatsmark{#1{\arabic{note}}}%
+  \hskip.5em\relax\ignorespaces}
+\newcommand*\note@crefsetup{% cleveref prints the tag alone: it already names the note
+  \crefname{note}{note}{notes}\Crefname{note}{Note}{Notes}%
+  \crefformat{note}{##2##1##3}\Crefformat{note}{##2##1##3}%
+  \crefmultiformat{note}{##2##1##3}{ and~##2##1##3}{, ##2##1##3}{, and~##2##1##3}%
+  \Crefmultiformat{note}{##2##1##3}{ and~##2##1##3}{, ##2##1##3}{, and~##2##1##3}%
+  \crefrangeformat{note}{##3##1##4--##5##2##6}\Crefrangeformat{note}{##3##1##4--##5##2##6}}
+\AtBeginDocument{\@ifpackageloaded{cleveref}{\note@crefsetup}{}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% \note.  \note@tagged[<options>]{<tag command>}{<fill color>}{<text>} is the
+%% general form: the tag command takes the number of the note as its argument.
+%%
+%% Adding a note must not change the surrounding indentation.  A margin note
+%% issued in vertical mode starts a paragraph of its own for its anchor, which
+%% uses up the "first paragraph after a heading" state, so a margin note
+%% sitting between a heading and its first paragraph would silently re-enable
+%% that paragraph's indent -- the after-heading \everypar is still armed, it
+%% just no longer sees the flag it keys on.  Snapshot the flag before the note
+%% and restore it after.  The text after an INLINE note is not indented.
 \newif\ifnote@nobreak
-\newcommand{\note}[4][]{%
+\newcommand{\note@tagged}[4][]{%
   \note@nobreakfalse
   \ifvmode\if@nobreak\note@nobreaktrue\fi\fi
-  \in@{inline}{#1}%
-  \ifin@
-    \iftodonotes{\note@inline{#2}{#3}{#4}}{}%
-  \else
-    \todo[color=#3,bordercolor=#3,caption={},#1]{\noteparstyle\textbf{#2}: #4}%
-  \fi
+  {\todo[color=#3,caption={},#1]{\noteparstyle\note@head{#2}#4}}%
   \ifnote@nobreak\global\@nobreaktrue\fi
-  \def\note@frameoverride{}}
+  \in@{inline}{#1}\ifin@\noindentaftertodo\fi}
+\newcommand{\note}[4][]{\note@tagged[#1]{\notetag{#2}{#3}}{#3}{#4}}
+\newcommand{\noteframecolor}[1]{}   % (kept for older preambles; notes have no frame)
+
 % \response{<name>} starts a new author's reply within someone else's note.
 % The reply is the first paragraph of its own little section: never indented,
 % while later paragraphs by the same author separate per \noteparstyle.  The
 % divider rule does the separating between authors, so it gets a fixed 3pt on
-% each side with no \parskip contribution -- notes are cramped, and rule plus
-% skip would be paying twice.  TeX still re-inserts \parskip when the reply
-% paragraph starts, so the lower \vspace pre-subtracts the whole thing.
-\newcommand{\response}[1]{%
+% each side with no \parskip contribution; TeX still re-inserts \parskip when
+% the reply paragraph starts, so the lower \vspace pre-subtracts the whole
+% thing.  The \nobreak keeps the rule with the reply when the note breaks.
+% The name is set as a tag if it is an author or an agent, in bold otherwise.
+\newcommand{\response@rule}{%
   \par
   \vspace{3pt}%
   \hrule
   \nobreak
   \vspace{\glueexpr 3pt-\parskip\relax}%
-  \noindent\textbf{#1:}}
-\newcommand{\notewho}[3][]{\note[#1]{#2}{blue!40}{#3}}     % for other commenters: specify author name in first required arg
-\newcommand{\Notewho}[3][]{\notewho[inline,#1]{#2}{#3}\noindentaftertodo}
+  \noindent}
+\newcommand{\response@with}[1]{\response@rule#1\hskip.5em\relax\ignorespaces}
+\newcommand{\response}[1]{%
+  \ifcsname agent@word@\detokenize{#1}\endcsname
+    \response@with{\agenttag{#1}{#1}{}}%
+  \else\ifcsname\string\color@notecolor-\detokenize{#1}\endcsname
+    \response@with{\notetag{#1}{notecolor-#1}{}}%
+  \else
+    \response@rule\textbf{#1:}%
+  \fi\fi}
 
-% Example macros for an author todonote: bare lowercase name = margin note,
-% capitalized = inline (check for clashes with existing commands before
-% naming --- e.g. an author `max` or `sec` needs a variant)
-% \newcommand{\sam}[2][]{\note[#1]{sam}{red!40}{#2}}
-% \newcommand{\Sam}[2][]{\sam[inline,#1]{#2}}
+% A note by somebody who has no macros.
+\newcommand{\notewho}[3][]{%
+  \@ifundefinedcolor{notecolor-#2}{\note@autocolor{#2}}{}%
+  \note[#1]{#2}{notecolor-#2}{#3}}
+\newcommand{\Notewho}[3][]{\notewho[inline,#1]{#2}{#3}}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% The lists given as package options.
+\ifx\mtn@opt@authors\@empty\else
+  \expandafter\noteauthors\expandafter{\mtn@opt@authors}%
+\fi
+\ifx\mtn@opt@agents\@empty\else
+  \RequirePackage{agentnotes}
+  \@for\mtn@tmp:=\mtn@opt@agents\do{\expandafter\newagent\expandafter{\mtn@tmp}}%
+\fi
+\endinput

@@ -1,6 +1,6 @@
 ---
 name: latex-todonotes
-description: Edit LaTeX papers using todonotes for author-agent collaboration. Respond to author margin comments without deleting them, mark your own contributions with owner-tagged macros named after you (\claude, \codex, \gemini, ...), and enumerate open items after each task.
+description: Edit LaTeX papers using todonotes for author-agent collaboration. Respond to author margin comments without deleting them, mark your own contributions with owner-tagged macros named after you (\claude, \codex, \gemini, ...), and enumerate open items after each task. Also sets the workflow up in a new paper (numbered notes that break across pages, authors from a list, a wide-margin review layout).
 ---
 
 # LaTeX Todonotes Editing Workflow
@@ -41,6 +41,12 @@ workflow. Read it before editing any paper.** It covers responding to author
 comments without deleting them, marking your own contributions, the mechanical
 pitfalls of these macros, enumerating open items after each task, setting up a
 new paper, and migrating an existing one.
+
+Three tools live next to this file: `tools/open_items.py <main.tex>` prints the
+open items of a paper (run it at the end of every task),
+`tools/setup.sh <paper directory>` copies the packages into a new paper, and
+`tools/sync.sh` brings every registered paper's copies up to date after the
+packages change (`--check` lists the papers that are behind).
 
 One rule is repeated here because getting it wrong destroys the author's work:
 **never delete an author's todonote.** Append a `\<agent>Response[<owner>]`

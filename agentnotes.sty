@@ -1,5 +1,5 @@
 %% agentnotes.sty --- AI agent todonotes integration (owner-tagged)
-%% Part of the latex-todonotes skill (https://github.com/postylem/latex-todonotes).
+%% Part of the latex-todonotes skill (git@github.com:postylem/latex-todonotes.git).
 %% Load AFTER mytodonotes.sty (needs its \note macro):
 %%   \usepackage{mytodonotes}
 %%   \usepackage{agentnotes}
@@ -11,6 +11,7 @@
 %%
 %%   \newagent{claude}                     % built-in preset
 %%   \newagent{claude}[color=Terracotta]   % preset, re-tinted for this paper
+%%   \newagent{claude}[flag=false]         % no margin flags for its applied text
 %%   \newagent{qwen}[name=Qwen, color=orange!60, mark=\ding{92}]   % custom
 %%
 %% For stem `claude' with display name `Claude' that gives:
@@ -18,8 +19,8 @@
 %%   \Claude[sam]{...}        inline variant
 %%   \claudeResponse[sam]     reply inside another author's note
 %%   \claudeSuggest[sam]{...} small inline text suggestion, in the agent's color
-%%   \claudechange[sam]{...}  agent-authored replacement text (owner arg is
-%%                            provenance only)
+%%   \claudechange[sam]{...}  agent-authored replacement text, already applied
+%%   \begin{ClaudeChange}[sam]...\end{ClaudeChange}    the same for a block
 %%   \begin{ClaudeSuggest}[sam]...\end{ClaudeSuggest}  block suggestion
 %%   \claudespark             the agent's mark on its own
 %%
@@ -31,22 +32,23 @@
 %% cosmetic: with display name == stem, the margin and inline macros would be
 %% the same control sequence and the second definition would fail.
 %%
-%% Every label reads "<mark><Agent>@<owner>": the mark and the agent's name in
-%% the agent's color on the agent's own tint, then "@<owner>" in the default
-%% text color on notecolor-<owner> itself, unmodified -- so the owner half looks
-%% just like that author's name does in their own notes.  Owner colors are
-%% picked to sit behind text, so they are used as backgrounds and never as text
-%% colors.  The note's frame, leader line, and the block pole's owner stripe all
-%% take notecolor-<owner> itself, unmodified, so the owner reads as one colour
-%% everywhere.
+%% Every label is a tag that reads "<mark><Agent>@<owner>": the mark and the
+%% agent's name in white on the agent's color, then "@<owner>" in white on the
+%% accent of notecolor-<owner> -- the same color that author's own tag has in
+%% their own notes -- and, at the head of a note, the note's number.  Owner
+%% colors are picked to sit behind text, so they are never used as text colors;
+%% the accent (mytodonotes' \note@setaccent) is the same hue made dark enough
+%% to carry white text.  The block pole's owner stripe takes notecolor-<owner>
+%% itself.
 %% Authors set up nothing agent-specific: \claude[<name>] finds the color
 %% `notecolor-<name>' that the author defined next to their own note macros in
 %% the document preamble, i.e. the three-line pattern
 %%   \colorlet{notecolor-sam}{red!40}
 %%   \newcommand{\sam}[2][]{\note[#1]{sam}{notecolor-sam}{#2}}
 %%   \newcommand{\Sam}[2][]{\sam[inline,#1]{#2}}
-%% An owner without a notecolor (or an omitted owner) falls back to the agent's
-%% own color, so an untabulated owner never breaks the build.
+%% An owner without a notecolor gets one derived from the name (as \notewho
+%% does), so an untabulated owner never breaks the build; an omitted owner
+%% gives a tag with the agent alone.
 %%
 %% Per-agent colors live in three colorlets named after the stem, mirroring the
 %% notecolor-<name> convention used for humans: agentcolor-<stem> is the brand
@@ -56,28 +58,19 @@
 %% Redefine them after \newagent to re-tint an agent per paper.
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{agentnotes}[2026/09/14 v2.0 owner-tagged AI agent todonotes]
+\ProvidesPackage{agentnotes}[2026/10/02 v2.1 owner-tagged AI agent todonotes]
 \RequirePackage{mytodonotes}
 \RequirePackage{xcolor}
 \RequirePackage[most]{tcolorbox}
 \RequirePackage{pifont}   % \ding{...}: the agents' marks
-\RequirePackage{marginnote}  % \marginnote: a margin flag that works in math mode
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Label geometry.  None of this depends on which agent is speaking.
 
-% The backgrounds behind a label are painted as rules in a zero-width,
-% zero-height overlay, so a label's metrics are exactly those of the plain
-% text: adding one never shifts anything horizontally or vertically, and no
-% chip can clip a neighboring glyph, since both rules are laid down before any
-% text.
+% Bleed of a label's background around its text, which the block's flag is
+% positioned by.
 \newlength{\agent@chippad}\setlength{\agent@chippad}{1.5pt}   % horizontal bleed
 \newlength{\agent@chiprise}\setlength{\agent@chiprise}{1pt}   % vertical bleed
-\newlength{\agent@wordwd}
-\newlength{\agent@ownerwd}
-\newcommand{\agent@chiprule}[1]{%
-  \rule[\dimexpr-\dp\strutbox-\agent@chiprise\relax]{#1}%
-       {\dimexpr\ht\strutbox+\dp\strutbox+2\agent@chiprise\relax}}
 
 \newlength{\agent@barwd}\setlength{\agent@barwd}{3pt}          % changebar width
 \newlength{\agent@gutterskip}\setlength{\agent@gutterskip}{8pt}% bar's distance into the gutter
@@ -94,38 +87,31 @@
   \@ifundefinedcolor{notecolor-#2}%
     {\colorlet{agent-accent}{agentcolor-#1}}%
     {\colorlet{agent-accent}{notecolor-#2}}}
-\newcommand{\agent@setownerbg}[2]{% #1 = stem, #2 = owner
-  \@ifundefinedcolor{notecolor-#2}%
-    {\colorlet{agent-ownerbg}{agentbg-#1}}%
-    {\colorlet{agent-ownerbg}{notecolor-#2}}}
 
-% The label, everywhere it appears.  The "@owner" half is suppressed when the
-% owner is the agent itself -- i.e. when no owner was given and the optional
-% argument fell back to the stem -- so \claude{...} reads just "Claude".
-% The owner half is set in the DEFAULT text color on the owner's note color, so
-% it matches how that author's name already looks in their own \<author> notes
-% and \response{<author>}.  Owner colors are chosen to sit behind text, so
-% using one as a text color gives poor contrast, worst of all for a reply
-% inside a note belonging to that same owner, where tinted text all but
-% vanishes.
-\newcommand{\agent@who}[2]{% #1 = stem, #2 = owner
+% The label, everywhere it appears: a tag (mytodonotes' \note@pill) with the
+% agent's mark and name on the accent of the agent's color, "@owner" on the
+% accent of the owner's note color, and the number of the note if there is one.
+% The "@owner" cell is left out when the owner is the agent itself -- i.e. when
+% no owner was given and the optional argument fell back to the stem -- so
+% \claude{...} reads just "Claude".  An owner who has no note color yet gets
+% one derived from the name.
+% (Robust: it is the text of a reference to a note, and goes through the aux.)
+\DeclareRobustCommand*\agenttag[3]{% #1 = stem, #2 = owner, #3 = number or empty
   \begingroup
-  \agent@setownerbg{#1}{#2}%
+  \@ifundefinedcolor{agentcolor-#1}%
+    {\note@setaccent{gray}{note@accenta}\def\agent@tmpword{#1}}%
+    {\note@setaccent{agentcolor-#1}{note@accenta}%
+     \def\agent@tmpword{\agent@sparkword{#1}}}%
   \def\agent@tmpowner{#2}\def\agent@tmpstem{#1}%
   \ifx\agent@tmpowner\agent@tmpstem
-    \def\agent@owner{}%
+    \note@pill{note@accenta}{\agent@tmpword}{note@accenta}{}{#3}%
   \else
-    \def\agent@owner{@#2}%
+    \@ifundefinedcolor{notecolor-#2}{\note@autocolor{#2}}{}%
+    \note@setaccent{notecolor-#2}{note@accentb}%
+    \note@pill{note@accenta}{\agent@tmpword}{note@accentb}{@#2}{#3}%
   \fi
-  \settowidth{\agent@wordwd}{\agent@sparkword{#1}}%
-  \settowidth{\agent@ownerwd}{\agent@owner}%
-  \raisebox{0pt}[0pt][0pt]{\rlap{\kern-\agent@chippad
-    \textcolor{agentbg-#1}{%
-      \agent@chiprule{\dimexpr\agent@wordwd+\agent@chippad\relax}}%
-    \textcolor{agent-ownerbg}{%
-      \agent@chiprule{\dimexpr\agent@ownerwd+\agent@chippad\relax}}}}%
-  \textcolor{agenttext-#1}{\agent@sparkword{#1}}{\normalcolor\agent@owner}%
   \endgroup}
+\newcommand{\agent@who}[2]{\agenttag{#1}{#2}{}}
 
 % \<agent>change is APPLIED replacement text: it flows in the paragraph as
 % ordinary prose, unlike \<agent>Suggest, which is a proposal and so can afford
@@ -141,12 +127,10 @@
 % (\<agent>change{\mathcal E}), where any inline label is several times wider
 % than the thing it labels, and two in one formula make it unreadable.
 %
-% \marginnote, not \marginpar (which todonotes uses): \marginpar fails outright
-% from math mode with "Not in outer par mode", and these changes live in math.
-% \marginnote also survives inside a tcolorbox, being non-floating, so it does
-% not hit the "Float(s) lost" trap that keeps \<agent>{} out of a suggestion
-% block.  The cost is that marginnote routes positions through the .aux and
-% renders NOTHING on a first pass -- build with latexmk, or run twice.
+% The flag is a \todofloatsflag: a margin item that is stacked with the notes,
+% so it never sits on top of one, and that works from math mode, where these
+% changes live, and inside a suggestion block.  The cost is that positions go
+% through the .aux -- build with latexmk, or run twice.
 %
 % One marker per paragraph per agent@owner.  Whether two changes share an output
 % LINE is unknowable when the macro runs, since TeX has not broken the paragraph
@@ -154,17 +138,37 @@
 % counter below is bumped once per paragraph and folded into the key, which
 % makes the flag idempotent without any list to clear.
 \newcount\agent@parno
-\AddToHook{para/begin}{\global\advance\agent@parno by 1\relax}
+\AddToHook{para/begin}{% (paragraphs of the document, not those inside a note)
+  \iftodofloatsinnote\else\global\advance\agent@parno by 1\relax\fi}
 \newcommand{\agent@changemark}[2]{% #1 = stem, #2 = owner
-  {\raggedright\scriptsize
-   {\bfseries\agent@setaccent{#1}{#2}\agent@who{#1}{#2}}%
-   \ \textcolor{agenttext-#1}{change}\par}}
-\newcommand{\agent@markonce}[2]{% #1 = stem, #2 = owner
-  \ifcsname agent@seen@\the\agent@parno @#1@#2\endcsname\else
-    \expandafter\gdef\csname agent@seen@\the\agent@parno @#1@#2\endcsname{}%
-    \marginnote{\agent@changemark{#1}{#2}}%
+  \agent@who{#1}{#2}\hskip.4em\relax\textcolor{agenttext-#1}{change}}
+% (amsmath typesets an aligned display twice, first to measure it; the flag
+% belongs to the second pass, so the first must not use the paragraph up.)
+\newcommand{\agent@ifmeasuring}{%
+  \ifcsname ifmeasuring@\endcsname
+    \expandafter\agent@ifmeasuring@
+  \else
+    \expandafter\@secondoftwo
   \fi}
-% No \ifmmode branch is needed, and that is a feature: both \marginnote and
+\newcommand{\agent@ifmeasuring@}{%
+  \csname ifmeasuring@\endcsname
+    \expandafter\@firstoftwo
+  \else
+    \expandafter\@secondoftwo
+  \fi}
+% An agent declared with flag=false gets no flags: in a paper where most of the
+% text is the agent's, a flag on every paragraph says nothing, and every flag
+% is a margin item that has to be placed.
+\def\agent@true{true}
+\newcommand{\agent@markonce}[2]{% #1 = stem, #2 = owner
+  \expandafter\ifx\csname agent@flag@#1\endcsname\agent@true
+    \agent@ifmeasuring{}{%
+      \ifcsname agent@seen@\the\agent@parno @#1@#2\endcsname\else
+        \expandafter\gdef\csname agent@seen@\the\agent@parno @#1@#2\endcsname{}%
+        \todofloatsflag{\agent@changemark{#1}{#2}}%
+      \fi}%
+  \fi}
+% No \ifmmode branch is needed, and that is a feature: both the flag and
 % \color work in math mode, so there is no conditional left open while a body
 % that may contain \par is typeset.
 \newcommand{\agent@change}[3]{% #1 = stem, #2 = owner, #3 = body
@@ -172,7 +176,7 @@
   {\color{agenttext-#1}#3}}
 
 \newcommand{\agent@blocklabel}[2]{% #1 = stem, #2 = owner
-  {\scriptsize\bfseries\agent@setaccent{#1}{#2}\strut\agent@who{#1}{#2}}}
+  {\scriptsize\strut\agent@who{#1}{#2}}}
 
 % The pole, drawn on every part of a breakable block: a bar in the agent's
 % background tint, plus a thin stripe in the owner's note color abutting it
@@ -231,7 +235,8 @@
 \pgfkeys{/agentnotes/.cd,
   name/.store in=\agent@disp,
   color/.store in=\agent@col,
-  mark/.store in=\agent@mark}
+  mark/.store in=\agent@mark,
+  flag/.store in=\agent@flag}
 
 \ExplSyntaxOn
 \NewExpandableDocumentCommand{\agent@titlecasefirst}{m}{\text_titlecase_first:n{#1}}
@@ -252,7 +257,10 @@
 % than hue that decides whether there is headroom to darken.  Every preset but
 % Codex sits above it, so this changes nothing that was already legible.
 \newcommand{\agent@lumfloor}{0.4}
-\def\agent@lumfrom#1,#2,#3\relax{\fpeval{0.299*(#1)+0.587*(#2)+0.114*(#3)}}
+\ExplSyntaxOn   % (\fp_eval:n rather than \fpeval, which needs a 2022 kernel)
+\cs_new:Npn \agent@lumfrom #1,#2,#3 \relax
+  { \fp_eval:n { 0.299*(#1) + 0.587*(#2) + 0.114*(#3) } }
+\ExplSyntaxOff
 \newcommand{\agent@mktextcolor}[1]{% #1 = stem
   \extractcolorspecs{agentcolor-#1}{\agent@cmodel}{\agent@cspec}%
   \convertcolorspec{\agent@cmodel}{\agent@cspec}{rgb}\agent@crgb
@@ -283,7 +291,9 @@
     {\edef\agent@disp{\@nameuse{agent@pname@#1}}%
      \edef\agent@col{\@nameuse{agent@pcolor@#1}}%
      \expandafter\let\expandafter\agent@mark\csname agent@pmark@#1\endcsname}%
+  \def\agent@flag{true}%
   \pgfkeys{/agentnotes/.cd, #2}%
+  \expandafter\let\csname agent@flag@#1\endcsname\agent@flag
   % Report a clash ourselves: \NewDocumentCommand would also refuse, but with a
   % message that says nothing about stems.
   \@ifundefined{#1}{}{\agent@clash{#1}{margin note}}%
@@ -306,25 +316,43 @@
   \expandafter\let\csname #1spark\endcsname\agent@mark
   % Margin note.
   \expandafter\NewDocumentCommand\csname#1\endcsname{O{#1} O{} +m}{%
-    \agent@setaccent{#1}{##1}%
-    \noteframecolor{agent-accent}% frame of a breakable inline note
-    \note[bordercolor=agent-accent,linecolor=agent-accent,##2]%
-      {\agent@setaccent{#1}{##1}\agent@who{#1}{##1}}{agentbg-#1}{##3}}%
+    \note@tagged[##2]{\agenttag{#1}{##1}}{agentbg-#1}{##3}}%
   % Inline note, named from the DISPLAY name.
   \expandafter\NewDocumentCommand\csname\agent@disp\endcsname{O{#1} O{} +m}{%
     \@nameuse{#1}[##1][inline,##2]{##3}}%
   % Reply inside another author's note, routed through \response so it
   % inherits that macro's rule and spacing.
   \expandafter\NewDocumentCommand\csname#1Response\endcsname{O{#1}}{%
-    \response{\agent@setaccent{#1}{##1}\agent@who{#1}{##1}}}%
-  % Small inline suggestion.
+    \response@with{\agent@who{#1}{##1}}}%
+  % Small inline suggestion.  It starts with an interword space, replacing any
+  % space before it, so that the line can break before the label: glued to a
+  % preceding `(Section 4)' it formed one unbreakable unit, and the lines before it
+  % were stretched to fit.
   \expandafter\NewDocumentCommand\csname#1Suggest\endcsname{O{#1} +m}{%
-    {\agent@setaccent{#1}{##1}\color{agenttext-#1}%
-     \textbf{\agent@who{#1}{##1}}: ##2}}%
-  % Applied replacement text: chip, colored text, and an extent rule.
+    \ifhmode\unskip\space\fi{\color{agenttext-#1}\agent@who{#1}{##1}\hskip.4em\relax ##2}}%
+  % Applied replacement text: colored text and a flag in the margin.
   \expandafter\NewDocumentCommand\csname#1change\endcsname{O{#1} +m}{%
     \agent@change{#1}{##1}{##2}}%
+  \agent@defchangeblock{#1}%
   \agent@defblock{#1}}
+
+% Applied block-level text, <Agent>Change: the block is in the agent's text
+% color, like \<agent>change, and the line it starts on gets the same flag in
+% the margin.  It is a plain group, not a box, so it may contain floats,
+% headings and displays, may start or end in mid-paragraph, and breaks across
+% pages like any text.  A block that starts between paragraphs hands its flag
+% to the first paragraph inside it.
+\newcommand{\agent@defchangeblock}[1]{% #1 = stem
+  \edef\agent@envname{\@nameuse{agent@word@#1}Change}%
+  \expandafter\NewDocumentEnvironment\expandafter{\agent@envname}{O{#1}}
+    {\begingroup
+     \ifvmode
+       \AddToHookNext{para/begin}{\agent@markonce{#1}{##1}}%
+     \else
+       \agent@markonce{#1}{##1}%
+     \fi
+     \color{agenttext-#1}\ignorespaces}
+    {\endgroup}}
 
 % Block suggestions: gutter changebar and agent-colored text, headed by a small
 % bold "<Agent>@<owner>" label (an omitted owner shows just the agent).

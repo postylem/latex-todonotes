@@ -7,7 +7,7 @@
 # directory works too, and picks up the repo's .sty files rather than any
 # installed copy.
 
-PACKAGES := ../mytodonotes.sty ../agentnotes.sty ../claudenotes.sty
+PACKAGES := ../todofloats.sty ../mytodonotes.sty ../agentnotes.sty ../claudenotes.sty
 
 all: example.pdf example-parskip.pdf test-compat.pdf
 
@@ -60,8 +60,46 @@ compat-bless: test-compat.pdf
 	@pdftoppm -r 150 -png -singlefile test-compat.pdf $(basename $(GOLDEN))
 	@echo "blessed $(GOLDEN) -- review it in the commit"
 
+# The engine under the packages (todofloats.sty): notes inside floats, notes
+# cut across columns and pages, the review layout.  Compiles two stress
+# documents and checks the logs, the layout (from the aux files) and the text.
+engine-check: $(PACKAGES)
+	cd todofloats && bash check.sh
+
+# The option refs=number: \ref and \cref of a note print #<number>, not its tag.
+# Builds the example with the option passed from outside and checks the aux
+# (every note label is \note@numref) and the text of the PDF (the references).
+refs-number: example.tex $(PACKAGES)
+	@latexmk -pdf -interaction=nonstopmode -jobname=example-refs \
+	  -usepretex='\PassOptionsToPackage{refs=number}{mytodonotes}' example.tex >/dev/null 2>&1; \
+	n=$$(grep -c 'newlabel{note:' example-refs.aux); \
+	m=$$(grep 'newlabel{note:' example-refs.aux | grep -c 'note@numref'); \
+	if [ "$$n" -gt 0 ] && [ "$$n" = "$$m" ] && pdftotext example-refs.pdf - | tr '\n' ' ' | grep -q 'agree with #[0-9]'; then \
+	  echo "refs-number OK: $$n note labels print #<number>"; \
+	else \
+	  echo "REFS-NUMBER FAILED: $$m of $$n note labels use #<number>"; exit 1; \
+	fi
+
+# The option tags=plain: every tag (notes, replies, references) is plain text.
+# Builds the example with the option passed from outside; it must compile, and
+# its text must still carry the authors' names and the note numbers.
+tags-plain: example.tex $(PACKAGES)
+	@latexmk -pdf -interaction=nonstopmode -jobname=example-tags \
+	  -usepretex='\PassOptionsToPackage{tags=plain}{mytodonotes}' example.tex >/dev/null 2>&1; \
+	if grep -q '^!' example-tags.log; then echo "TAGS-PLAIN FAILED: errors in example-tags.log"; exit 1; fi; \
+	if pdftotext example-tags.pdf - | grep -q 'frank'; then echo "tags-plain OK: compiles, names and numbers present"; \
+	else echo "TAGS-PLAIN FAILED: author names missing from the text"; exit 1; fi
+
+# tools/open_items.py against the example: the items it finds, with the numbers
+# the notes have in the PDF.
+open-items: example.pdf
+	python3 ../tools/open_items.py example.tex
+
 clean:
 	latexmk -c example.tex test-compat.tex
 	latexmk -c -jobname=example-parskip example.tex
+	latexmk -C -jobname=example-refs example.tex
+	latexmk -C -jobname=example-tags example.tex
+	rm -rf todofloats/out
 
-.PHONY: all clean compat-check compat-build compat-render compat-bless
+.PHONY: all clean compat-check compat-build compat-render compat-bless engine-check refs-number tags-plain open-items

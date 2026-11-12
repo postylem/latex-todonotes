@@ -1,0 +1,16 @@
+% Negative control: plain todonotes with a margin \todo inside a figure float.
+% Expected: "LaTeX Error: Float(s) lost." -- this is the problem todofloats fixes.
+\documentclass[11pt,twocolumn]{article}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{lipsum}
+\usepackage[textsize=scriptsize]{todonotes}
+\begin{document}
+\lipsum[1]
+\begin{figure}[t]
+  \centering
+  \rule{4cm}{2cm}
+  \todo{A margin note inside a float: this loses the float.}
+  \caption{A figure.}
+\end{figure}
+\lipsum[2-3]
+\end{document}

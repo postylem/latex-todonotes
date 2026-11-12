@@ -1,0 +1,33 @@
+% Second test document for todofloats.sty: the review layout (option grow: the
+% text block of an ordinary page, wide side margins), where a margin note that
+% does not fit on its page is cut and continued on the next page with the full
+% header and footer wording.  check.sh compiles it and checks the layout, the
+% page size, and the text.
+\documentclass[11pt,twocolumn]{article}
+\usepackage[a4paper,margin=2.5cm,heightrounded=true]{geometry}
+\usepackage{hyperref}
+\usepackage{lipsum}
+\usepackage{xcolor}
+\newcommand{\todofontsize}{\fontsize{7}{8}\selectfont}
+\usepackage[textsize=todofontsize,grow=80mm,authors={timv=magenta!10},agents={claude,codex}]{mytodonotes} % [disable]
+\usepackage[capitalise]{cleveref}
+\newcommand{\violettext}[1]{{\color{violet}#1}}
+
+\begin{document}
+\section{Wide Margins}\label{sec:wide}
+\lipsum[1]
+A first note\timv{\label{note:w1}W1 a short note at the top of the left margin.} here.
+\lipsum[2]
+A long note\codex{\label{note:w2}\violettext{W2 the whole text of this note is colored, and the note is cut.
+\lipsum[3-9]
+
+A second paragraph, with a link that may sit at the cut: \href{https://example.org/a/long/link/that/takes/some/room/in/the/line}{a
+fairly long hyperlink text that can be broken across two lines of the note}. \lipsum[10-16]}
+\response{claude} A reply after the cut, which refers to \cref{note:w1}, to \cref{note:w3}, and to \cref{sec:wide}.
+\lipsum[17-19]} in the left column.
+\lipsum[20-22]
+A note in the right column\claude{\label{note:w3}W3 a note in the right margin, long enough to be cut as well. \lipsum[23-36]} here.
+\lipsum[37-40]
+On the second page\timv{W4 a note on the page that receives the continuations.} there is one more note.
+\lipsum[41-44]
+\end{document}
