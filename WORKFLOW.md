@@ -285,7 +285,7 @@ When asked to set up the todonotes workflow in a new LaTeX project:
    above, the open-items enumeration habit, and the sync protocol if the repo is
    Overleaf-synced. Write it agent-neutrally, the way this document is written,
    so that whichever agent a collaborator uses can follow it. The skill's repo
-   (https://github.com/postylem/latex-todonotes) may be mentioned as provenance,
+   (git@github.com:postylem/latex-todonotes.git) may be mentioned as provenance,
    never as the place the instructions live.
 
 ## Migrating an existing paper

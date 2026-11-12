@@ -3,7 +3,7 @@
 This paper uses margin notes for the conversation between its authors and the
 AI agents that work on it. The packages are in the repository
 (`mytodonotes.sty`, `agentnotes.sty`, `todofloats.sty`); they come from
-https://github.com/postylem/latex-todonotes.
+`git@github.com:postylem/latex-todonotes.git`.
 
 ## Who you are
 

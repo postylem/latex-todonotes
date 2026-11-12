@@ -140,7 +140,7 @@ claude plugin install latex-todonotes@postylem-skills
 Or manually: clone (or copy the directory) into `~/.claude/skills/`:
 
 ```bash
-git clone https://github.com/postylem/latex-todonotes ~/.claude/skills/latex-todonotes
+git clone git@github.com:postylem/latex-todonotes.git ~/.claude/skills/latex-todonotes
 ```
 
 For an agent without a skill mechanism, point it at `AGENTS.md` in the clone.
