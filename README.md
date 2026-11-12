@@ -1,7 +1,8 @@
 # latex-todonotes
 
 A skill for author–agent collaboration in LaTeX papers, built on
-[todonotes](https://ctan.org/pkg/todonotes), and based on an initial version by
+[todonotes](https://ctan.org/pkg/todonotes), by
+[Jacob Hoover Vigly](https://jahoo.github.io/) and
 [Tim Vieira](https://timvieira.github.io/).
 
 It teaches an AI agent a margin-comment workflow:
