@@ -66,13 +66,21 @@ behind() {
   done
 }
 
-# build <dir>: latexmk on $main in <dir>; prints "errors undefined pages"
+# build <dir>: latexmk on $main in <dir>, forcing a full run (-g); prints
+# "errors undefined pages". The log and PDF are found wherever the paper's
+# latexmkrc puts them ($out_dir, $aux_dir): the ones written by this run.
 build() {
-  local opt=-pdf log="$1/${main%.tex}.log" e u p
+  local opt=-pdf stamp log pdf e u p
   grep -qs pdf_mode "$1/.latexmkrc" "$1/latexmkrc" && opt=
-  ( cd "$1" && timeout 1200 latexmk $opt -interaction=nonstopmode -halt-on-error "$main" >/dev/null 2>&1 ) || return 1
+  stamp=$(mktemp)
+  ( cd "$1" && timeout 1200 latexmk -g $opt -interaction=nonstopmode -halt-on-error "$main" >/dev/null 2>&1 ) \
+    || { rm -f "$stamp"; return 1; }
+  log=$(find "$1" -name "${main%.tex}.log" -newer "$stamp" -print -quit)
+  pdf=$(find "$1" -name "${main%.tex}.pdf" -newer "$stamp" -print -quit)
+  rm -f "$stamp"
+  [ -n "$log" ] || { echo "sync.sh: latexmk wrote no ${main%.tex}.log under $1" >&2; return 1; }
   e=$(grep -c '^!' "$log" || true); u=$(grep -c 'undefined' "$log" || true)
-  p=$(pdfinfo "$1/${main%.tex}.pdf" 2>/dev/null | awk '/^Pages:/{print $2}')
+  p=$(pdfinfo "$pdf" 2>/dev/null | awk '/^Pages:/{print $2}')
   echo "$e $u ${p:-?}"
 }
 
@@ -95,12 +103,12 @@ update() {
   w="$wt/w/$rel"; w=${w%/}
   keep="the worktree is kept at $wt/w (remove it with: git -C $top worktree remove --force $wt/w)"
   echo "updating    $1:" $need
-  before=$(build "$w") || die "$1: the paper does not build before the update (log: $w/${main%.tex}.log); nothing changed; $keep"
+  before=$(build "$w") || die "$1: the paper does not build before the update (its log is under $w); nothing changed; $keep"
   for f in $need; do
     changes="$changes  $f $(version "$w/$f") -> $(version "$here/$f")"$'\n'
     cp "$here/$f" "$w/$f"; cmp -s "$here/$f" "$w/$f" || die "$1: the copy of $f differs from the skill's"
   done
-  after=$(build "$w") || die "$1: the build fails with the new packages (log: $w/${main%.tex}.log); nothing committed; $keep"
+  after=$(build "$w") || die "$1: the build fails with the new packages (its log is under $w); nothing committed; $keep"
   read -r be bu bp <<<"$before"; read -r ae au ap <<<"$after"
   [ "$ae" -le "$be" ] && [ "$au" -le "$bu" ] \
     || die "$1: more errors or undefined references after the update (before: $be errors, $bu undefined; after: $ae, $au); nothing committed; $keep"
