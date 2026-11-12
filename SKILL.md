@@ -42,9 +42,11 @@ comments without deleting them, marking your own contributions, the mechanical
 pitfalls of these macros, enumerating open items after each task, setting up a
 new paper, and migrating an existing one.
 
-Two tools live next to this file: `tools/open_items.py <main.tex>` prints the
-open items of a paper (run it at the end of every task), and
-`tools/setup.sh <paper directory>` copies the packages into a new paper.
+Three tools live next to this file: `tools/open_items.py <main.tex>` prints the
+open items of a paper (run it at the end of every task),
+`tools/setup.sh <paper directory>` copies the packages into a new paper, and
+`tools/sync.sh` brings every registered paper's copies up to date after the
+packages change (`--check` lists the papers that are behind).
 
 One rule is repeated here because getting it wrong destroys the author's work:
 **never delete an author's todonote.** Append a `\<agent>Response[<owner>]`

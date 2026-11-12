@@ -86,7 +86,8 @@ text and are usually too pale to read against one.
   survive inside floats, the review layout (`grow`). Usable on its own in place
   of todonotes.
 - `tools/open_items.py` — the open-items list of a paper; `tools/setup.sh` —
-  copies the packages into a paper
+  copies the packages into a paper; `tools/sync.sh` — brings the copies in
+  every registered paper up to the skill's version
 - `templates/` — the preamble block and the `AGENTS.md` a new paper starts from
 - `agentnotes.sty` — `\newagent` and the owner-tagged macro family it mints
   (loads on top of `mytodonotes.sty`)
@@ -103,7 +104,12 @@ text and are usually too pale to read against one.
 
 Copy `todofloats.sty`, `mytodonotes.sty` and `agentnotes.sty` into the paper
 directory and commit them, so collaborators who clone the repo can build it
-(`tools/setup.sh <paper directory>` does the copying).
+(`tools/setup.sh <paper directory>` does the copying, and registers the paper).
+When the packages change, `tools/sync.sh --check` lists the papers that are
+behind, and `tools/sync.sh` updates them: for each, in a separate worktree of
+its upstream branch, it replaces the copies, builds the paper before and after,
+and commits and pushes only if the build is no worse. The registry is
+`~/.config/latex-todonotes/papers`; add a paper with `tools/sync.sh --add <main.tex>`.
 
 `test/example.tex` exercises every note style across five agents with
 lorem-ipsum content — the built PDFs are committed for browsing without

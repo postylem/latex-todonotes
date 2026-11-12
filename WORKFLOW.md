@@ -229,8 +229,9 @@ When asked to set up the todonotes workflow in a new LaTeX project:
 
 1. Run `tools/setup.sh <paper directory>` from this skill's directory. It copies
    `todofloats.sty`, `mytodonotes.sty` and `agentnotes.sty` into the paper (and
-   a starting `AGENTS.md`, see step 4). Commit them: collaborators who clone
-   the repo need them to build. (Copy `claudenotes.sty` too only if the paper
+   a starting `AGENTS.md`, see step 4), and registers the paper's `main.tex`
+   for `tools/sync.sh`, which updates the copies when the packages change.
+   Commit them: collaborators who clone the repo need them to build. (Copy `claudenotes.sty` too only if the paper
    already loads it; new papers do not need it.)
 2. Load the package in the preamble, after `xcolor`/`tikz` and before
    `cleveref` — one line, from `templates/preamble.tex`:
